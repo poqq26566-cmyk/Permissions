@@ -1,4 +1,4 @@
-package com.example.permissionmanager
+qpackage com.example.permissionmanager
 
 import android.content.Intent
 import android.net.Uri
