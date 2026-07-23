@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#FF000000</color>
+
+    <!-- 图标背景色 -->
+    <color name="tint_purple">#9C27B0</color>
+    <color name="tint_blue">#2196F3</color>
+    <color name="tint_red">#F44336</color>
+    <color name="tint_orange">#FF9800</color>
+    <color name="tint_green">#4CAF50</color>
+    <color name="tint_yellow">#FFC107</color>
+    <color name="tint_brown">#795548</color>
+    <color name="tint_teal">#009688</color>
+    <color name="tint_indigo">#3F51B5</color>
+    <color name="tint_pink">#E91E63</color>
+    <color name="tint_lime">#8BC34A</color>
+    <color name="tint_deep_orange">#FF5722</color>
+    <color name="tint_cyan">#00BCD4</color>
+</resources>
