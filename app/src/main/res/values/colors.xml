@@ -17,4 +17,6 @@
     <color name="tint_lime">#8BC34A</color>
     <color name="tint_deep_orange">#FF5722</color>
     <color name="tint_cyan">#00BCD4</color>
+    <color name="tint_deep_purple">#673AB7</color>
+    <color name="tint_amber">#FFA000</color>
 </resources>
