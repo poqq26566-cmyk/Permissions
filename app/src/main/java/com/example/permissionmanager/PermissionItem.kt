@@ -22,5 +22,6 @@ enum class PermissionType {
     BATTERY,
     UNKNOWN_SOURCES,
     NOTIFICATION_LISTENER,
-    USAGE_ACCESS
+    USAGE_ACCESS,
+    ALARMS_REMINDERS
 }
