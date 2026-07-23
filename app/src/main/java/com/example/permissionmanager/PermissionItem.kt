@@ -20,5 +20,6 @@ enum class PermissionType {
     CONTACTS,
     CALENDAR,
     BATTERY,
-    UNKNOWN_SOURCES
+    UNKNOWN_SOURCES,
+    NOTIFICATION_LISTENER
 }
