@@ -20,10 +20,15 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: 授予 Gradle 执行权限
-        run: chmod +x gradlew
+      # ✅ 用这个替换原来的 chmod + gradlew 步骤
+      - name: 设置 Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.6'
+
+      - name: 生成 Gradle Wrapper
+        run: gradle wrapper --gradle-version 8.6 --distribution-type bin
 
       - name: 编译 Debug APK
         run: ./gradlew assembleDebug --stacktrace
