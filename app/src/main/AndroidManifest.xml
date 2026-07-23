@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- ✅ 新增：声明需要查询的包，Android 11+ 必须加，否则 resolveActivity() 强制返回 null -->
+    <queries>
+        <package android:name="com.coloros.safecenter" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
