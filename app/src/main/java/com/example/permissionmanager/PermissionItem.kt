@@ -1,23 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- 基础颜色 -->
-    <color name="white">#FFFFFF</color>
-    <color name="black">#FF000000</color>
+package com.example.permissionmanager
 
-    <!-- 图标背景色 / 着色板 -->
-    <color name="tint_purple">#9C27B0</color>
-    <color name="tint_blue">#2196F3</color>
-    <color name="tint_red">#F44336</color>
-    <color name="tint_orange">#FF9800</color>
-    <color name="tint_green">#4CAF50</color>
-    <color name="tint_yellow">#FFC107</color>
-    <color name="tint_brown">#795548</color>
-    <color name="tint_teal">#009688</color>
-    <color name="tint_indigo">#3F51B5</color>
-    <color name="tint_pink">#E91E63</color>
-    <color name="tint_lime">#8BC34A</color>
-    <color name="tint_deep_orange">#FF5722</color>
-    <color name="tint_cyan">#00BCD4</color>
-    <color name="tint_deep_purple">#673AB7</color>
-    <color name="tint_amber">#FFA000</color>
-</resources>
+data class PermissionItem(
+    val name: String,
+    val description: String,
+    val iconRes: Int,
+    val iconTint: Int,
+    val type: PermissionType
+)
+
+enum class PermissionType {
+    ACCESSIBILITY,
+    OVERLAY,
+    MICROPHONE,
+    CAMERA,
+    LOCATION,
+    NOTIFICATION,
+    STORAGE,
+    PHONE,
+    CONTACTS,
+    CALENDAR,
+    BATTERY,
+    UNKNOWN_SOURCES,
+    NOTIFICATION_LISTENER,
+    USAGE_ACCESS,
+    ALARMS_REMINDERS,
+    WRITE_SETTINGS,
+    DND_ACCESS
+}
