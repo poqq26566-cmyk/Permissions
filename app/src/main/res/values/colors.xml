@@ -16,4 +16,5 @@
     <color name="tint_pink">#E91E63</color>
     <color name="tint_lime">#8BC34A</color>
     <color name="tint_deep_orange">#FF5722</color>
+    <color name="tint_cyan">#00BCD4</color>
 </resources>
