@@ -50,7 +50,9 @@ class MainActivity : AppCompatActivity() {
             PermissionItem("电池优化", "允许应用忽略电池优化在后台运行",
                 R.drawable.ic_battery, R.color.tint_lime, PermissionType.BATTERY),
             PermissionItem("安装未知应用", "允许应用安装来自未知来源的 APK 文件",
-                R.drawable.ic_install, R.color.tint_deep_orange, PermissionType.UNKNOWN_SOURCES)
+                R.drawable.ic_install, R.color.tint_deep_orange, PermissionType.UNKNOWN_SOURCES),
+            PermissionItem("通知使用权", "允许应用读取、清除系统中所有其他应用的通知内容，风险较高，请谨慎授权",
+                R.drawable.ic_notification, R.color.tint_cyan, PermissionType.NOTIFICATION_LISTENER)
         )
 
         val adapter = PermissionAdapter(permissionList) { openPermissionSettings(it) }
@@ -105,6 +107,9 @@ class MainActivity : AppCompatActivity() {
                     permissionGroupIntent("android.permission-group.CONTACTS")
                 PermissionType.CALENDAR ->
                     permissionGroupIntent("android.permission-group.CALENDAR")
+                PermissionType.NOTIFICATION_LISTENER ->
+                    // 公开 SDK 常量，GMS 强制要求实现，跳到全部应用的通知使用权列表页。
+                    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
             }
             startActivity(intent)
         } catch (e: Exception) {
