@@ -117,8 +117,11 @@ class MainActivity : AppCompatActivity() {
      */
     private fun permissionGroupIntent(permissionGroup: String): Intent {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            Intent(Settings.ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION).apply {
-                putExtra(Intent.EXTRA_PERMISSION_NAME, permissionGroup)
+            // ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION / EXTRA_PERMISSION_NAME 不是公开 SDK
+            // 常量（仅供系统 PermissionController 内部使用），编译期无法引用，这里直接用
+            // 对应的字符串字面量，效果相同。
+            Intent("android.settings.MANAGE_ALL_APPLICATIONS_PERMISSION").apply {
+                putExtra("android.intent.extra.PERMISSION_NAME", permissionGroup)
             }
         } else {
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
