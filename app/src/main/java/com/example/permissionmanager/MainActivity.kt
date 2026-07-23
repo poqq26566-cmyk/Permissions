@@ -90,7 +90,13 @@ class MainActivity : AppCompatActivity() {
                 PermissionType.LOCATION ->
                     permissionGroupIntent("android.permission-group.LOCATION")
                 PermissionType.STORAGE ->
-                    permissionGroupIntent("android.permission-group.STORAGE")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        // 这个是真正公开、GMS 强制要求的特殊权限接口（和无障碍/悬浮窗同级别），
+                        // 所有认证过 GMS 的手机（包括国产 ROM）都必须实现，可跨厂商稳定使用。
+                        Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                    } else {
+                        permissionGroupIntent("android.permission-group.STORAGE")
+                    }
                 PermissionType.PHONE ->
                     permissionGroupIntent("android.permission-group.PHONE")
                 PermissionType.CONTACTS ->
@@ -111,22 +117,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * 依次尝试多个候选 Intent，返回第一个系统上真正能处理的（用 resolveActivity 检测）。
+     * 都不行则返回 null，交给调用方走最终兜底。
+     */
+    private fun firstResolvable(vararg intents: Intent): Intent? {
+        for (intent in intents) {
+            if (intent.resolveActivity(packageManager) != null) return intent
+        }
+        return null
+    }
+
+    /**
      * 跳转到系统"按权限查看应用"列表页（与无障碍/悬浮窗页面类似的效果）。
-     * 该 Action 自 Android 10 (API 29) 起可用；更低版本系统没有对应的
-     * 跨应用权限列表页，只能退回到本应用的详情页。
+     *
+     * - Android 10+ 的原生 Settings 理论上有 ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION，
+     *   但它是隐藏 API，多数国产 ROM（ColorOS/OxygenOS、MIUI/HyperOS 等）并未实现。
+     * - ColorOS/OxygenOS（OPPO、一加、Realme）有自己的权限管理入口
+     *   com.coloros.safecenter/.privacypermissionsentry.PermissionTopActivity，
+     *   效果和你截图里悬浮窗/麦克风的列表页一致，但没有公开参数能直接定位到某一个
+     *   权限类型，只能先跳到这个权限管理主页，再手动点进对应权限。
+     * - 都打不开的话，最终退回本应用详情页。
      */
     private fun permissionGroupIntent(permissionGroup: String): Intent {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION / EXTRA_PERMISSION_NAME 不是公开 SDK
-            // 常量（仅供系统 PermissionController 内部使用），编译期无法引用，这里直接用
-            // 对应的字符串字面量，效果相同。
-            Intent("android.settings.MANAGE_ALL_APPLICATIONS_PERMISSION").apply {
+        val candidates = mutableListOf<Intent>()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            candidates += Intent("android.settings.MANAGE_ALL_APPLICATIONS_PERMISSION").apply {
                 putExtra("android.intent.extra.PERMISSION_NAME", permissionGroup)
             }
-        } else {
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        }
+
+        // ColorOS / OxygenOS（OPPO、一加、Realme）权限管理主页
+        candidates += Intent().apply {
+            component = android.content.ComponentName(
+                "com.coloros.safecenter",
+                "com.coloros.privacypermissionsentry.PermissionTopActivity"
+            )
+        }
+
+        return firstResolvable(*candidates.toTypedArray())
+            ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                 data = Uri.parse("package:$packageName")
             }
-        }
     }
 }
