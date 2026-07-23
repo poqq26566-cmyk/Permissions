@@ -73,9 +73,11 @@ class MainActivity : AppCompatActivity() {
                         putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                     }
                 PermissionType.BATTERY ->
-                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
+                    // ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS 跳到全部应用的电池优化
+                    // 列表页（GMS 强制要求的公开特殊权限入口，跨厂商稳定）。
+                    // 之前用的 ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 只会为
+                    // 本应用弹一个系统授权对话框，不是列表，效果完全不同。
+                    Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
                 PermissionType.UNKNOWN_SOURCES ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
