@@ -83,10 +83,20 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         Intent(Settings.ACTION_SECURITY_SETTINGS)
                     }
-                else ->
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
+                PermissionType.MICROPHONE ->
+                    permissionGroupIntent("android.permission-group.MICROPHONE")
+                PermissionType.CAMERA ->
+                    permissionGroupIntent("android.permission-group.CAMERA")
+                PermissionType.LOCATION ->
+                    permissionGroupIntent("android.permission-group.LOCATION")
+                PermissionType.STORAGE ->
+                    permissionGroupIntent("android.permission-group.STORAGE")
+                PermissionType.PHONE ->
+                    permissionGroupIntent("android.permission-group.PHONE")
+                PermissionType.CONTACTS ->
+                    permissionGroupIntent("android.permission-group.CONTACTS")
+                PermissionType.CALENDAR ->
+                    permissionGroupIntent("android.permission-group.CALENDAR")
             }
             startActivity(intent)
         } catch (e: Exception) {
@@ -96,6 +106,23 @@ class MainActivity : AppCompatActivity() {
                 })
             } catch (ex: Exception) {
                 Toast.makeText(this, "无法打开系统设置", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /**
+     * 跳转到系统"按权限查看应用"列表页（与无障碍/悬浮窗页面类似的效果）。
+     * 该 Action 自 Android 10 (API 29) 起可用；更低版本系统没有对应的
+     * 跨应用权限列表页，只能退回到本应用的详情页。
+     */
+    private fun permissionGroupIntent(permissionGroup: String): Intent {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Intent(Settings.ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION).apply {
+                putExtra(Intent.EXTRA_PERMISSION_NAME, permissionGroup)
+            }
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
             }
         }
     }
