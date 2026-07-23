@@ -56,7 +56,11 @@ class MainActivity : AppCompatActivity() {
             PermissionItem("使用情况访问权限", "允许应用跟踪您使用其他应用的行为和频率，及运营商、语言等设备信息",
                 R.drawable.ic_usage, R.color.tint_deep_purple, PermissionType.USAGE_ACCESS),
             PermissionItem("闹钟和提醒", "允许应用设置闹钟以及安排在特定时间执行某些操作",
-                R.drawable.ic_alarm, R.color.tint_amber, PermissionType.ALARMS_REMINDERS)
+                R.drawable.ic_alarm, R.color.tint_amber, PermissionType.ALARMS_REMINDERS),
+            PermissionItem("修改系统设置", "允许应用修改系统设置",
+                R.drawable.ic_settings_gear, R.color.tint_grey, PermissionType.WRITE_SETTINGS),
+            PermissionItem("勿扰模式访问权限", "允许应用开启或关闭勿扰模式，以及修改相关的例外规则",
+                R.drawable.ic_dnd, R.color.tint_deep_red, PermissionType.DND_ACCESS)
         )
 
         val adapter = PermissionAdapter(permissionList) { openPermissionSettings(it) }
@@ -129,6 +133,14 @@ class MainActivity : AppCompatActivity() {
                             data = Uri.parse("package:$packageName")
                         }
                     }
+                PermissionType.WRITE_SETTINGS ->
+                    // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
+                    // "修改系统设置"权限列表页。
+                    Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+                PermissionType.DND_ACCESS ->
+                    // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
+                    // 勿扰模式访问权限列表页。
+                    Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
             }
             startActivity(intent)
         } catch (e: Exception) {
