@@ -54,7 +54,9 @@ class MainActivity : AppCompatActivity() {
             PermissionItem("通知使用权", "允许应用读取、清除系统中所有其他应用的通知内容，风险较高，请谨慎授权",
                 R.drawable.ic_notification, R.color.tint_cyan, PermissionType.NOTIFICATION_LISTENER),
             PermissionItem("使用情况访问权限", "允许应用跟踪您使用其他应用的行为和频率，及运营商、语言等设备信息",
-                R.drawable.ic_usage, R.color.tint_deep_purple, PermissionType.USAGE_ACCESS)
+                R.drawable.ic_usage, R.color.tint_deep_purple, PermissionType.USAGE_ACCESS),
+            PermissionItem("闹钟和提醒", "允许应用设置闹钟以及安排在特定时间执行某些操作",
+                R.drawable.ic_alarm, R.color.tint_amber, PermissionType.ALARMS_REMINDERS)
         )
 
         val adapter = PermissionAdapter(permissionList) { openPermissionSettings(it) }
@@ -116,6 +118,17 @@ class MainActivity : AppCompatActivity() {
                     // 同样是公开 SDK 常量（API 21+），GMS 强制要求，跳到全部应用的
                     // 使用情况访问权限列表页。
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                PermissionType.ALARMS_REMINDERS ->
+                    // ACTION_REQUEST_SCHEDULE_EXACT_ALARM 是公开常量（API 31+），
+                    // 跳到全部应用的"闹钟和提醒"权限列表页。低于 API 31 的系统没有
+                    // 精确闹钟这个概念，直接退回本应用详情页。
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                    } else {
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                    }
             }
             startActivity(intent)
         } catch (e: Exception) {
