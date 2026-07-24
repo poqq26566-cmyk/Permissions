@@ -25,5 +25,6 @@ enum class PermissionType {
     USAGE_ACCESS,
     ALARMS_REMINDERS,
     WRITE_SETTINGS,
-    DND_ACCESS
+    DND_ACCESS,
+    BACKGROUND_POPUP
 }
