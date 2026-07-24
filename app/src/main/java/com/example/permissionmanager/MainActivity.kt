@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         val permissionList = listOf(
+            PermissionItem("特殊应用权限（总览）", "跳到系统的\"特殊应用权限\"汇总页，包含悬浮窗、后台弹出、使用情况访问等全部分类（不同厂商实现不同，找不到会自动退回本应用详情页）",
+                R.drawable.ic_grid, R.color.tint_black, PermissionType.SPECIAL_ACCESS_OVERVIEW),
             PermissionItem("无障碍", "允许应用使用无障碍服务，控制设备",
                 R.drawable.ic_accessibility, R.color.tint_purple, PermissionType.ACCESSIBILITY),
             PermissionItem("悬浮窗", "允许应用在其他应用上层显示，可能影响其他应用",
@@ -147,6 +149,31 @@ class MainActivity : AppCompatActivity() {
                     // "后台弹出界面"是 ColorOS/OxygenOS 私有分类，没有公开的 AOSP 权限组
                     // 名称可用，只能走 ColorOS 权限管理主页兜底（跳过去后需要手动点这个分类）。
                     permissionGroupIntent("com.oplus.permission.opsafe.BACKGROUND_START_ACTIVITY")
+                PermissionType.SPECIAL_ACCESS_OVERVIEW ->
+                    // 这几个都是没有公开文档、各厂商各不相同的系统内部 Activity，靠已知
+                    // 组件名硬跳，找不到就自动退回本应用详情页。
+                    firstResolvable(
+                        Intent().apply {
+                            component = android.content.ComponentName(
+                                "com.android.permissioncontroller",
+                                "com.android.permissioncontroller.role.ui.SpecialAppAccessListActivity"
+                            )
+                        },
+                        Intent().apply {
+                            component = android.content.ComponentName(
+                                "com.android.settings",
+                                "com.oplus.settings.OplusSettingsActivity\$SpecialAccessSettingsMainActivity"
+                            )
+                        },
+                        Intent().apply {
+                            component = android.content.ComponentName(
+                                "com.oplus.securitypermission",
+                                "com.oplusos.securitypermission.privacycenter.specialaccess.ui.SpecialAccessOptimizeActivity"
+                            )
+                        }
+                    ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
             }
             startActivity(intent)
         } catch (e: Exception) {
