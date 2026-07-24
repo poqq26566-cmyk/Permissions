@@ -206,8 +206,7 @@ class MainActivity : AppCompatActivity() {
                 PermissionType.MEDIA_MANAGEMENT ->
                     // ACTION_REQUEST_MANAGE_MEDIA 只会弹授权对话框，不是列表页。
                     // "android.settings.MEDIA_MANAGEMENT_SETTINGS" 才是跳到
-                    // "媒体管理应用"应用列表页的正确 Action（API 31 公开，
-                    // 但 AOSP 实际从 API 30 就有了，一加 OxygenOS/ColorOS 均支持）。
+                    // "媒体管理应用"应用列表页的正确 Action（API 30+ 均支持）。
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         firstResolvable(
                             // ① 标准 AOSP 列表页（一加 / 原生 / Pixel 均走这条）
@@ -231,8 +230,30 @@ class MainActivity : AppCompatActivity() {
                 PermissionType.FULL_SCREEN_INTENT ->
                     // Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT 是公开常量
                     // （API 34+），跳到全部应用的"发送全屏通知"列表页。
+                    // ColorOS 的 resolveActivity 对 Action 查询受 <queries> 限制，
+                    // 必须同时声明组件名备用路径才能正确跳转。
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+                        firstResolvable(
+                            // ① 标准 AOSP Action（原生 / Pixel 走这条）
+                            Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT),
+                            // ② AOSP Settings 组件名（ColorOS 底层仍基于 AOSP，部分版本走这条）
+                            Intent().apply {
+                                component = android.content.ComponentName(
+                                    "com.android.settings",
+                                    "com.android.settings.Settings\$ManageAppUseFullScreenIntentActivity"
+                                )
+                            },
+                            // ③ ColorOS/OxygenOS 可能的私有入口
+                            Intent().apply {
+                                component = android.content.ComponentName(
+                                    "com.oplus.securitypermission",
+                                    "com.oplus.securitypermission.permission.ui.PermissionGroupAppsActivity"
+                                )
+                                putExtra("permissionGroup", "USE_FULL_SCREEN_INTENT")
+                            }
+                        ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
                     } else {
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.parse("package:$packageName")
