@@ -358,8 +358,20 @@ class MainActivity : AppCompatActivity() {
 
         candidates += Intent().apply {
             component = android.content.ComponentName(
-                "com.coloros.safecenter",
-                "com.coloros.privacypermissionsentry.PermissionTopActivity"
+                "com.oplus.securitypermission",
+                "com.oplusos.securitypermission.permission.singlepage.PermissionTabActivity"
+            )
+            putExtra("current_permission_group", permissionGroup)
+            putExtra("permission_group", permissionGroup)
+            putExtra("extra_permission_group", permissionGroup)
+            putExtra("android.intent.extra.PERMISSION_NAME", permissionGroup)
+            data = Uri.parse("package:$packageName")
+        }
+
+        candidates += Intent().apply {
+            component = android.content.ComponentName(
+                "com.oplus.securitypermission",
+                "com.oplusos.securitypermission.permission.PermissionGroupsActivity"
             )
         }
 
