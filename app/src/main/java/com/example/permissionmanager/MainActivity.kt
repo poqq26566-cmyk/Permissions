@@ -60,7 +60,9 @@ class MainActivity : AppCompatActivity() {
             PermissionItem("修改系统设置", "允许应用修改系统设置",
                 R.drawable.ic_settings_gear, R.color.tint_grey, PermissionType.WRITE_SETTINGS),
             PermissionItem("勿扰模式访问权限", "允许应用开启或关闭勿扰模式，以及修改相关的例外规则",
-                R.drawable.ic_dnd, R.color.tint_deep_red, PermissionType.DND_ACCESS)
+                R.drawable.ic_dnd, R.color.tint_deep_red, PermissionType.DND_ACCESS),
+            PermissionItem("后台弹出界面", "允许后台运行的应用弹出新界面，并可能覆盖在正在使用的应用上方",
+                R.drawable.ic_popup, R.color.tint_blue_grey, PermissionType.BACKGROUND_POPUP)
         )
 
         val adapter = PermissionAdapter(permissionList) { openPermissionSettings(it) }
@@ -141,6 +143,10 @@ class MainActivity : AppCompatActivity() {
                     // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
                     // 勿扰模式访问权限列表页。
                     Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                PermissionType.BACKGROUND_POPUP ->
+                    // "后台弹出界面"是 ColorOS/OxygenOS 私有分类，没有公开的 AOSP 权限组
+                    // 名称可用，只能走 ColorOS 权限管理主页兜底（跳过去后需要手动点这个分类）。
+                    permissionGroupIntent("com.oplus.permission.opsafe.BACKGROUND_START_ACTIVITY")
             }
             startActivity(intent)
         } catch (e: Exception) {
