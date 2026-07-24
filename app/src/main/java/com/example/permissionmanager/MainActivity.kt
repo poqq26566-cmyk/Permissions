@@ -38,6 +38,12 @@ class MainActivity : AppCompatActivity() {
         return super.onOptionsItemSelected(item)
     }
 
+    /**
+     * 【诊断】遍历几个可能装了系统权限管理页面的包，把类名里带
+     * Permission / Privacy / Access 关键字的 Activity 全部列出来，
+     * 方便直接在真机上找到当前 ColorOS 版本实际可用的组件名，
+     * 不需要电脑 / adb。
+     */
     private fun showDiagnosticDialog() {
         val candidatePackages = listOf(
             "com.coloros.safecenter",
@@ -303,22 +309,34 @@ class MainActivity : AppCompatActivity() {
 
             startActivity(intent)
         } catch (e: Exception) {
+            // 【诊断】用可滚动、可长按复制的完整弹窗展示真实异常。
+            // 关键修复：AlertDialog.show() 是非阻塞的，之前的写法是弹窗弹出后
+            // 立刻紧接着 startActivity 跳应用详情——应用详情页几乎瞬间就会盖住
+            // 这个弹窗，导致你根本看不到报错内容，表现就是"直接跳到应用详情"。
+            // 现在改成等你点弹窗的"关闭"按钮之后，才执行兜底跳转。
             android.util.Log.e("PermDebug", "[${item.type}] 跳转失败", e)
             showDebugTextDialog(
                 "跳转失败",
-                "类型: ${e.javaClass.name}\n消息: ${e.message}\n\n${android.util.Log.getStackTraceString(e)}"
+                "类型: ${e.javaClass.name}\n消息: ${e.message}\n\n${android.util.Log.getStackTraceString(e)}",
+                onDismiss = {
+                    try {
+                        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        })
+                    } catch (ex: Exception) {
+                        Toast.makeText(this, "无法打开系统设置", Toast.LENGTH_SHORT).show()
+                    }
+                }
             )
-            try {
-                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:$packageName")
-                })
-            } catch (ex: Exception) {
-                Toast.makeText(this, "无法打开系统设置", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
-    private fun showDebugTextDialog(title: String, content: String) {
+    /**
+     * 【诊断】通用的可滚动、可选中复制的文本弹窗，用于展示可能很长的
+     * 异常堆栈或诊断结果，避免 Toast 截断。onDismiss 会在用户点击"关闭"
+     * 之后才执行，用来延迟兜底跳转，避免把弹窗盖住。
+     */
+    private fun showDebugTextDialog(title: String, content: String, onDismiss: (() -> Unit)? = null) {
         val scrollView = android.widget.ScrollView(this)
         val textView = android.widget.TextView(this).apply {
             text = content
@@ -331,10 +349,16 @@ class MainActivity : AppCompatActivity() {
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(title)
             .setView(scrollView)
-            .setPositiveButton("关闭", null)
+            .setCancelable(false)
+            .setPositiveButton("关闭") { _, _ -> onDismiss?.invoke() }
             .show()
     }
 
+    /**
+     * 依次尝试多个候选 Intent，返回第一个系统上真正能处理的（用 resolveActivity 检测）。
+     * 都不行则返回 null，交给调用方走最终兜底。
+     * 【诊断】把每个候选的检测结果打出来，方便确认到底是哪一个候选没通过。
+     */
     private fun firstResolvable(vararg intents: Intent): Intent? {
         for (intent in intents) {
             val target = intent.component?.let { "${it.packageName}/${it.className}" }
@@ -347,6 +371,19 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
+    /**
+     * 跳转到系统"按权限查看应用"列表页（与无障碍/悬浮窗页面类似的效果）。
+     *
+     * - Android 10+ 的原生 Settings 理论上有 ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION，
+     *   但它是隐藏 API，多数国产 ROM（ColorOS/OxygenOS、MIUI/HyperOS 等）并未实现。
+     * - 【已通过真机诊断确认】新版 ColorOS（16+）已经把旧的 com.coloros.safecenter
+     *   整体迁移改名为 com.oplus.securitypermission，旧的 PermissionTopActivity
+     *   已不存在。新的"按权限查看应用列表"页是 PermissionTabActivity（就是截图里
+     *   带 全部/使用时允许/每次使用时询问/不允许 几个 tab 的那个页面）。
+     *   具体它读取哪个 extra key 来定位到某个权限分类还不确定，所以把几个最可能的
+     *   key 都一起放进去，系统只会读取它认识的那个，其余会被忽略。
+     * - 都打不开的话，退回权限分类总览页；再不行才最终退回本应用详情页。
+     */
     private fun permissionGroupIntent(permissionGroup: String): Intent {
         val candidates = mutableListOf<Intent>()
 
@@ -356,6 +393,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // 新版 ColorOS：按权限查看应用列表页（tab 样式）
         candidates += Intent().apply {
             component = android.content.ComponentName(
                 "com.oplus.securitypermission",
@@ -368,6 +406,7 @@ class MainActivity : AppCompatActivity() {
             data = Uri.parse("package:$packageName")
         }
 
+        // 保底：权限分类总览页（进去后需要手动点对应权限分类，但不会是应用详情）
         candidates += Intent().apply {
             component = android.content.ComponentName(
                 "com.oplus.securitypermission",
