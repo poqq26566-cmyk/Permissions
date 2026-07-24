@@ -70,7 +70,9 @@ class MainActivity : AppCompatActivity() {
             PermissionItem("发送全屏通知", "允许应用发送需要立即处理的全屏通知，例如来电或闹钟提醒（Android 14+）",
                 R.drawable.ic_fullscreen, R.color.tint_light_blue, PermissionType.FULL_SCREEN_INTENT),
             PermissionItem("默认应用", "设置主屏幕、短信、电话、浏览器等各类操作的默认处理应用",
-                R.drawable.ic_star, R.color.tint_gold, PermissionType.DEFAULT_APPS)
+                R.drawable.ic_star, R.color.tint_gold, PermissionType.DEFAULT_APPS),
+            PermissionItem("设备管理器", "查看和管理拥有设备管理员权限的应用（如远程锁定、擦除数据等高级权限）",
+                R.drawable.ic_shield, R.color.tint_navy, PermissionType.DEVICE_ADMIN)
         )
 
         val adapter = PermissionAdapter(permissionList) { openPermissionSettings(it) }
@@ -204,6 +206,19 @@ class MainActivity : AppCompatActivity() {
                 PermissionType.DEFAULT_APPS ->
                     // 公开 SDK 常量（API 24+），跳到系统"默认应用"设置页。
                     Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+                PermissionType.DEVICE_ADMIN ->
+                    // 没有公开 Settings.ACTION_* 常量，只能用硬编码组件名，找不到
+                    // 就自动退回本应用详情页。
+                    firstResolvable(
+                        Intent().apply {
+                            component = android.content.ComponentName(
+                                "com.android.settings",
+                                "com.android.settings.DeviceAdminSettings"
+                            )
+                        }
+                    ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
             }
             startActivity(intent)
         } catch (e: Exception) {
