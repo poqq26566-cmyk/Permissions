@@ -25,6 +25,58 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
     }
 
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menu.add(0, 1, 0, "诊断：查找系统权限页面组件名")
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        if (item.itemId == 1) {
+            showDiagnosticDialog()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun showDiagnosticDialog() {
+        val candidatePackages = listOf(
+            "com.coloros.safecenter",
+            "com.android.settings",
+            "com.android.permissioncontroller",
+            "com.oplus.securitypermission"
+        )
+        val keywords = listOf("permission", "privacy", "access")
+
+        val sb = StringBuilder()
+        for (pkg in candidatePackages) {
+            sb.append("== $pkg ==\n")
+            try {
+                val info = packageManager.getPackageInfo(
+                    pkg,
+                    android.content.pm.PackageManager.GET_ACTIVITIES
+                )
+                val activities = info.activities
+                if (activities == null || activities.isEmpty()) {
+                    sb.append("(未取到 activity 列表，可能需要系统签名权限)\n\n")
+                    continue
+                }
+                val matched = activities
+                    .map { it.name }
+                    .filter { name -> keywords.any { name.lowercase().contains(it) } }
+                if (matched.isEmpty()) {
+                    sb.append("(没有匹配到含 permission/privacy/access 的 Activity)\n\n")
+                } else {
+                    matched.sorted().forEach { sb.append(it).append("\n") }
+                    sb.append("\n")
+                }
+            } catch (e: Exception) {
+                sb.append("读取失败: ${e.javaClass.simpleName} - ${e.message}\n\n")
+            }
+        }
+
+        showDebugTextDialog("候选权限页面组件", sb.toString())
+    }
+
     private fun setupRecyclerView() {
         val permissionList = listOf(
             PermissionItem("特殊应用权限（总览）", "跳到系统的\"特殊应用权限\"汇总页，包含悬浮窗、后台弹出、使用情况访问等全部分类（不同厂商实现不同，找不到会自动退回本应用详情页）",
@@ -245,20 +297,17 @@ class MainActivity : AppCompatActivity() {
                         data = Uri.parse("package:$packageName")
                     }
             }
-
             val debugTarget = intent.component?.let { "组件: ${it.packageName}/${it.className}" }
                 ?: "Action: ${intent.action}"
             android.util.Log.d("PermDebug", "[${item.type}] 即将跳转 -> $debugTarget")
-            Toast.makeText(this, "跳转: $debugTarget", Toast.LENGTH_LONG).show()
 
             startActivity(intent)
         } catch (e: Exception) {
             android.util.Log.e("PermDebug", "[${item.type}] 跳转失败", e)
-            Toast.makeText(
-                this,
-                "跳转失败: ${e.javaClass.simpleName} - ${e.message}",
-                Toast.LENGTH_LONG
-            ).show()
+            showDebugTextDialog(
+                "跳转失败",
+                "类型: ${e.javaClass.name}\n消息: ${e.message}\n\n${android.util.Log.getStackTraceString(e)}"
+            )
             try {
                 startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:$packageName")
@@ -267,6 +316,23 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "无法打开系统设置", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showDebugTextDialog(title: String, content: String) {
+        val scrollView = android.widget.ScrollView(this)
+        val textView = android.widget.TextView(this).apply {
+            text = content
+            setPadding(32, 24, 32, 24)
+            setTextIsSelectable(true)
+            textSize = 12f
+        }
+        scrollView.addView(textView)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(scrollView)
+            .setPositiveButton("关闭", null)
+            .show()
     }
 
     private fun firstResolvable(vararg intents: Intent): Intent? {
