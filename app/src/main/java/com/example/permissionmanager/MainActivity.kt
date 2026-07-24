@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_dnd, R.color.tint_deep_red, PermissionType.DND_ACCESS),
             PermissionItem("后台弹出界面", "允许后台运行的应用弹出新界面，并可能覆盖在正在使用的应用上方",
                 R.drawable.ic_popup, R.color.tint_blue_grey, PermissionType.BACKGROUND_POPUP),
-            PermissionItem("媒体管理应用", "允许应用在无需用户逐一确认的情况下修改或删除媒体文件（Android 13+）",
+            PermissionItem("媒体管理应用", "允许应用在无需用户逐一确认的情况下修改或删除媒体文件（Android 11+）",
                 R.drawable.ic_media, R.color.tint_light_green, PermissionType.MEDIA_MANAGEMENT),
             PermissionItem("发送全屏通知", "允许应用发送需要立即处理的全屏通知，例如来电或闹钟提醒（Android 14+）",
                 R.drawable.ic_fullscreen, R.color.tint_light_blue, PermissionType.FULL_SCREEN_INTENT),
@@ -87,32 +87,42 @@ class MainActivity : AppCompatActivity() {
             val intent = when (item.type) {
                 PermissionType.ACCESSIBILITY ->
                     Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+
                 PermissionType.OVERLAY ->
-                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:$packageName"))
+                    Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:$packageName")
+                    )
+
                 PermissionType.NOTIFICATION ->
                     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
                         putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
                     }
+
                 PermissionType.BATTERY ->
                     // ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS 跳到全部应用的电池优化
                     // 列表页（GMS 强制要求的公开特殊权限入口，跨厂商稳定）。
-                    // 之前用的 ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS 只会为
-                    // 本应用弹一个系统授权对话框，不是列表，效果完全不同。
                     Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+
                 PermissionType.UNKNOWN_SOURCES ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:$packageName"))
+                        Intent(
+                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:$packageName")
+                        )
                     } else {
                         Intent(Settings.ACTION_SECURITY_SETTINGS)
                     }
+
                 PermissionType.MICROPHONE ->
                     permissionGroupIntent("android.permission-group.MICROPHONE")
+
                 PermissionType.CAMERA ->
                     permissionGroupIntent("android.permission-group.CAMERA")
+
                 PermissionType.LOCATION ->
                     permissionGroupIntent("android.permission-group.LOCATION")
+
                 PermissionType.STORAGE ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         // 这个是真正公开、GMS 强制要求的特殊权限接口（和无障碍/悬浮窗同级别），
@@ -121,19 +131,25 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         permissionGroupIntent("android.permission-group.STORAGE")
                     }
+
                 PermissionType.PHONE ->
                     permissionGroupIntent("android.permission-group.PHONE")
+
                 PermissionType.CONTACTS ->
                     permissionGroupIntent("android.permission-group.CONTACTS")
+
                 PermissionType.CALENDAR ->
                     permissionGroupIntent("android.permission-group.CALENDAR")
+
                 PermissionType.NOTIFICATION_LISTENER ->
                     // 公开 SDK 常量，GMS 强制要求实现，跳到全部应用的通知使用权列表页。
                     Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+
                 PermissionType.USAGE_ACCESS ->
                     // 同样是公开 SDK 常量（API 21+），GMS 强制要求，跳到全部应用的
                     // 使用情况访问权限列表页。
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+
                 PermissionType.ALARMS_REMINDERS ->
                     // ACTION_REQUEST_SCHEDULE_EXACT_ALARM 是公开常量（API 31+），
                     // 跳到全部应用的"闹钟和提醒"权限列表页。低于 API 31 的系统没有
@@ -145,18 +161,22 @@ class MainActivity : AppCompatActivity() {
                             data = Uri.parse("package:$packageName")
                         }
                     }
+
                 PermissionType.WRITE_SETTINGS ->
                     // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
                     // "修改系统设置"权限列表页。
                     Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+
                 PermissionType.DND_ACCESS ->
                     // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
                     // 勿扰模式访问权限列表页。
                     Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+
                 PermissionType.BACKGROUND_POPUP ->
                     // "后台弹出界面"是 ColorOS/OxygenOS 私有分类，没有公开的 AOSP 权限组
                     // 名称可用，只能走 ColorOS 权限管理主页兜底（跳过去后需要手动点这个分类）。
                     permissionGroupIntent("com.oplus.permission.opsafe.BACKGROUND_START_ACTIVITY")
+
                 PermissionType.SPECIAL_ACCESS_OVERVIEW ->
                     // 这几个都是没有公开文档、各厂商各不相同的系统内部 Activity，靠已知
                     // 组件名硬跳，找不到就自动退回本应用详情页。
@@ -182,17 +202,32 @@ class MainActivity : AppCompatActivity() {
                     ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.parse("package:$packageName")
                     }
+
                 PermissionType.MEDIA_MANAGEMENT ->
-                    // "android.provider.action.REQUEST_MANAGE_MEDIA"（即 MediaStore.
-                    // ACTION_REQUEST_MANAGE_MEDIA，API 33+）在当前编译环境里解析不到，
-                    // 直接用字符串字面量，效果相同，跳到全部应用的"媒体管理应用"列表页。
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        Intent("android.provider.action.REQUEST_MANAGE_MEDIA")
+                    // ACTION_REQUEST_MANAGE_MEDIA 只会弹授权对话框，不是列表页。
+                    // "android.settings.MEDIA_MANAGEMENT_SETTINGS" 才是跳到
+                    // "媒体管理应用"应用列表页的正确 Action（API 31 公开，
+                    // 但 AOSP 实际从 API 30 就有了，一加 OxygenOS/ColorOS 均支持）。
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        firstResolvable(
+                            // ① 标准 AOSP 列表页（一加 / 原生 / Pixel 均走这条）
+                            Intent("android.settings.MEDIA_MANAGEMENT_SETTINGS"),
+                            // ② ColorOS 备用入口（极少数旧版 ColorOS）
+                            Intent().apply {
+                                component = android.content.ComponentName(
+                                    "com.android.settings",
+                                    "com.android.settings.Settings\$MediaManagementAppsActivity"
+                                )
+                            }
+                        ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
                     } else {
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.parse("package:$packageName")
                         }
                     }
+
                 PermissionType.FULL_SCREEN_INTENT ->
                     // Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT 是公开常量
                     // （API 34+），跳到全部应用的"发送全屏通知"列表页。
@@ -203,9 +238,11 @@ class MainActivity : AppCompatActivity() {
                             data = Uri.parse("package:$packageName")
                         }
                     }
+
                 PermissionType.DEFAULT_APPS ->
                     // 公开 SDK 常量（API 24+），跳到系统"默认应用"设置页。
                     Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+
                 PermissionType.DEVICE_ADMIN ->
                     // 没有公开 Settings.ACTION_* 常量，只能用硬编码组件名，找不到
                     // 就自动退回本应用详情页。
