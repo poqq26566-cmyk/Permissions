@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -64,7 +65,13 @@ class MainActivity : AppCompatActivity() {
             PermissionItem("勿扰模式访问权限", "允许应用开启或关闭勿扰模式，以及修改相关的例外规则",
                 R.drawable.ic_dnd, R.color.tint_deep_red, PermissionType.DND_ACCESS),
             PermissionItem("后台弹出界面", "允许后台运行的应用弹出新界面，并可能覆盖在正在使用的应用上方",
-                R.drawable.ic_popup, R.color.tint_blue_grey, PermissionType.BACKGROUND_POPUP)
+                R.drawable.ic_popup, R.color.tint_blue_grey, PermissionType.BACKGROUND_POPUP),
+            PermissionItem("媒体管理应用", "允许应用在无需用户逐一确认的情况下修改或删除媒体文件（Android 13+）",
+                R.drawable.ic_media, R.color.tint_light_green, PermissionType.MEDIA_MANAGEMENT),
+            PermissionItem("发送全屏通知", "允许应用发送需要立即处理的全屏通知，例如来电或闹钟提醒（Android 14+）",
+                R.drawable.ic_fullscreen, R.color.tint_light_blue, PermissionType.FULL_SCREEN_INTENT),
+            PermissionItem("默认应用", "设置主屏幕、短信、电话、浏览器等各类操作的默认处理应用",
+                R.drawable.ic_star, R.color.tint_gold, PermissionType.DEFAULT_APPS)
         )
 
         val adapter = PermissionAdapter(permissionList) { openPermissionSettings(it) }
@@ -174,6 +181,29 @@ class MainActivity : AppCompatActivity() {
                     ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.parse("package:$packageName")
                     }
+                PermissionType.MEDIA_MANAGEMENT ->
+                    // MediaStore.ACTION_REQUEST_MANAGE_MEDIA 是公开常量（API 33+），
+                    // 跳到全部应用的"媒体管理应用"列表页。
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        Intent(MediaStore.ACTION_REQUEST_MANAGE_MEDIA)
+                    } else {
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                    }
+                PermissionType.FULL_SCREEN_INTENT ->
+                    // Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT 是公开常量
+                    // （API 34+），跳到全部应用的"发送全屏通知"列表页。
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+                    } else {
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                    }
+                PermissionType.DEFAULT_APPS ->
+                    // 公开 SDK 常量（API 24+），跳到系统"默认应用"设置页。
+                    Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
             }
             startActivity(intent)
         } catch (e: Exception) {
