@@ -25,4 +25,5 @@
     <color name="tint_light_green">#689F38</color>
     <color name="tint_light_blue">#0288D1</color>
     <color name="tint_gold">#F9A825</color>
+    <color name="tint_navy">#1A237E</color>
 </resources>
