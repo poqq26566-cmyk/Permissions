@@ -22,4 +22,7 @@
     <color name="tint_deep_red">#B71C1C</color>
     <color name="tint_blue_grey">#455A64</color>
     <color name="tint_black">#212121</color>
+    <color name="tint_light_green">#689F38</color>
+    <color name="tint_light_blue">#0288D1</color>
+    <color name="tint_gold">#F9A825</color>
 </resources>
