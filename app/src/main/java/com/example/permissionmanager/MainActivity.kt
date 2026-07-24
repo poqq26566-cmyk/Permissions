@@ -158,6 +158,8 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 PermissionType.BATTERY ->
+                    // ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS 跳到全部应用的电池优化
+                    // 列表页（GMS 强制要求的公开特殊权限入口，跨厂商稳定）。
                     Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 
                 PermissionType.UNKNOWN_SOURCES ->
@@ -181,6 +183,8 @@ class MainActivity : AppCompatActivity() {
 
                 PermissionType.STORAGE ->
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        // 这个是真正公开、GMS 强制要求的特殊权限接口（和无障碍/悬浮窗同级别），
+                        // 所有认证过 GMS 的手机（包括国产 ROM）都必须实现，可跨厂商稳定使用。
                         Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                     } else {
                         permissionGroupIntent("android.permission-group.STORAGE")
@@ -196,12 +200,18 @@ class MainActivity : AppCompatActivity() {
                     permissionGroupIntent("android.permission-group.CALENDAR")
 
                 PermissionType.NOTIFICATION_LISTENER ->
+                    // 公开 SDK 常量，GMS 强制要求实现，跳到全部应用的通知使用权列表页。
                     Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
 
                 PermissionType.USAGE_ACCESS ->
+                    // 同样是公开 SDK 常量（API 21+），GMS 强制要求，跳到全部应用的
+                    // 使用情况访问权限列表页。
                     Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
 
                 PermissionType.ALARMS_REMINDERS ->
+                    // ACTION_REQUEST_SCHEDULE_EXACT_ALARM 是公开常量（API 31+），
+                    // 跳到全部应用的"闹钟和提醒"权限列表页。低于 API 31 的系统没有
+                    // 精确闹钟这个概念，直接退回本应用详情页。
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                     } else {
@@ -211,15 +221,23 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 PermissionType.WRITE_SETTINGS ->
+                    // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
+                    // "修改系统设置"权限列表页。
                     Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
 
                 PermissionType.DND_ACCESS ->
+                    // 公开 SDK 常量（API 23+），GMS 强制要求，跳到全部应用的
+                    // 勿扰模式访问权限列表页。
                     Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
 
                 PermissionType.BACKGROUND_POPUP ->
+                    // "后台弹出界面"是 ColorOS/OxygenOS 私有分类，没有公开的 AOSP 权限组
+                    // 名称可用，只能走 ColorOS 权限管理主页兜底（跳过去后需要手动点这个分类）。
                     permissionGroupIntent("com.oplus.permission.opsafe.BACKGROUND_START_ACTIVITY")
 
                 PermissionType.SPECIAL_ACCESS_OVERVIEW ->
+                    // 这几个都是没有公开文档、各厂商各不相同的系统内部 Activity，靠已知
+                    // 组件名硬跳，找不到就自动退回本应用详情页。
                     firstResolvable(
                         Intent().apply {
                             component = android.content.ComponentName(
@@ -244,9 +262,14 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 PermissionType.MEDIA_MANAGEMENT ->
+                    // ACTION_REQUEST_MANAGE_MEDIA 只会弹授权对话框，不是列表页。
+                    // "android.settings.MEDIA_MANAGEMENT_SETTINGS" 才是跳到
+                    // "媒体管理应用"应用列表页的正确 Action（API 30+ 均支持）。
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         firstResolvable(
+                            // ① 标准 AOSP 列表页（一加 / 原生 / Pixel 均走这条）
                             Intent("android.settings.MEDIA_MANAGEMENT_SETTINGS"),
+                            // ② ColorOS 备用入口（极少数旧版 ColorOS）
                             Intent().apply {
                                 component = android.content.ComponentName(
                                     "com.android.settings",
@@ -263,15 +286,22 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 PermissionType.FULL_SCREEN_INTENT ->
+                    // Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT 是公开常量
+                    // （API 34+），跳到全部应用的"发送全屏通知"列表页。
+                    // ColorOS 的 resolveActivity 对 Action 查询受 <queries> 限制，
+                    // 必须同时声明组件名备用路径才能正确跳转。
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                         firstResolvable(
+                            // ① 标准 AOSP Action（原生 / Pixel 走这条）
                             Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT),
+                            // ② AOSP Settings 组件名（ColorOS 底层仍基于 AOSP，部分版本走这条）
                             Intent().apply {
                                 component = android.content.ComponentName(
                                     "com.android.settings",
                                     "com.android.settings.Settings\$ManageAppUseFullScreenIntentActivity"
                                 )
                             },
+                            // ③ ColorOS/OxygenOS 可能的私有入口
                             Intent().apply {
                                 component = android.content.ComponentName(
                                     "com.oplus.securitypermission",
@@ -289,9 +319,12 @@ class MainActivity : AppCompatActivity() {
                     }
 
                 PermissionType.DEFAULT_APPS ->
+                    // 公开 SDK 常量（API 24+），跳到系统"默认应用"设置页。
                     Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
 
                 PermissionType.DEVICE_ADMIN ->
+                    // 没有公开 Settings.ACTION_* 常量，只能用硬编码组件名，找不到
+                    // 就自动退回本应用详情页。
                     firstResolvable(
                         Intent().apply {
                             component = android.content.ComponentName(
@@ -303,6 +336,7 @@ class MainActivity : AppCompatActivity() {
                         data = Uri.parse("package:$packageName")
                     }
             }
+            // 【诊断】把实际发出的 Intent 打出来，方便确认走的是哪条分支
             val debugTarget = intent.component?.let { "组件: ${it.packageName}/${it.className}" }
                 ?: "Action: ${intent.action}"
             android.util.Log.d("PermDebug", "[${item.type}] 即将跳转 -> $debugTarget")
@@ -376,13 +410,15 @@ class MainActivity : AppCompatActivity() {
      *
      * - Android 10+ 的原生 Settings 理论上有 ACTION_MANAGE_ALL_APPLICATIONS_PERMISSION，
      *   但它是隐藏 API，多数国产 ROM（ColorOS/OxygenOS、MIUI/HyperOS 等）并未实现。
-     * - 【已通过真机诊断确认】新版 ColorOS（16+）已经把旧的 com.coloros.safecenter
-     *   整体迁移改名为 com.oplus.securitypermission，旧的 PermissionTopActivity
-     *   已不存在。新的"按权限查看应用列表"页是 PermissionTabActivity（就是截图里
-     *   带 全部/使用时允许/每次使用时询问/不允许 几个 tab 的那个页面）。
-     *   具体它读取哪个 extra key 来定位到某个权限分类还不确定，所以把几个最可能的
-     *   key 都一起放进去，系统只会读取它认识的那个，其余会被忽略。
-     * - 都打不开的话，退回权限分类总览页；再不行才最终退回本应用详情页。
+     * - 【已通过真机诊断确认，且是硬限制】com.oplus.securitypermission 包下的
+     *   PermissionTabActivity 虽然存在，但被标记为签名级权限
+     *   com.oplus.permission.safe.SECURITY 保护，第三方 App 无法直接启动
+     *   （SecurityException），任何 extra 参数都无法绕过——这是 OS 层面的安全限制，
+     *   不是猜错参数的问题，所以这里不再尝试它。
+     * - 退而求其次尝试同包的"权限分类总览页" PermissionGroupsActivity，如果它的
+     *   保护级别宽松一些，至少能跳到一个可以手动点进具体权限的页面；如果同样被拒绝，
+     *   就说明这台设备上第三方 App 确实无法深链到任何按权限分类的列表页，
+     *   只能退回本应用详情页（这是系统安全边界决定的，不是可修复的 bug）。
      */
     private fun permissionGroupIntent(permissionGroup: String): Intent {
         val candidates = mutableListOf<Intent>()
@@ -393,20 +429,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 新版 ColorOS：按权限查看应用列表页（tab 样式）
-        candidates += Intent().apply {
-            component = android.content.ComponentName(
-                "com.oplus.securitypermission",
-                "com.oplusos.securitypermission.permission.singlepage.PermissionTabActivity"
-            )
-            putExtra("current_permission_group", permissionGroup)
-            putExtra("permission_group", permissionGroup)
-            putExtra("extra_permission_group", permissionGroup)
-            putExtra("android.intent.extra.PERMISSION_NAME", permissionGroup)
-            data = Uri.parse("package:$packageName")
-        }
-
-        // 保底：权限分类总览页（进去后需要手动点对应权限分类，但不会是应用详情）
+        // 权限分类总览页（比 PermissionTabActivity 更"上层"，值得一试，
+        // 但同包的其他页面很可能也是同一签名保护级别）
         candidates += Intent().apply {
             component = android.content.ComponentName(
                 "com.oplus.securitypermission",
