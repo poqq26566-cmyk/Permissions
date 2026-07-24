@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -182,10 +181,11 @@ class MainActivity : AppCompatActivity() {
                         data = Uri.parse("package:$packageName")
                     }
                 PermissionType.MEDIA_MANAGEMENT ->
-                    // MediaStore.ACTION_REQUEST_MANAGE_MEDIA 是公开常量（API 33+），
-                    // 跳到全部应用的"媒体管理应用"列表页。
+                    // "android.provider.action.REQUEST_MANAGE_MEDIA"（即 MediaStore.
+                    // ACTION_REQUEST_MANAGE_MEDIA，API 33+）在当前编译环境里解析不到，
+                    // 直接用字符串字面量，效果相同，跳到全部应用的"媒体管理应用"列表页。
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        Intent(MediaStore.ACTION_REQUEST_MANAGE_MEDIA)
+                        Intent("android.provider.action.REQUEST_MANAGE_MEDIA")
                     } else {
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.parse("package:$packageName")
