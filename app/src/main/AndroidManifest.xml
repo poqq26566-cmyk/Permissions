@@ -4,6 +4,14 @@
     <!-- ✅ 新增：声明需要查询的包，Android 11+ 必须加，否则 resolveActivity() 强制返回 null -->
     <queries>
         <package android:name="com.coloros.safecenter" />
+        
+    
+        <!-- 补充：让 resolveActivity() 能查到系统 Settings 里的各类权限页 -->
+        <package android:name="com.android.settings" />
+        <package android:name="com.android.permissioncontroller" />
+        <package android:name="com.oplus.securitypermission" />
+
+
     </queries>
 
     <application
