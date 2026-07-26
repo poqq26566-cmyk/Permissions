@@ -1,7 +1,6 @@
 package com.example.permissionmanager
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -21,6 +20,11 @@ import com.example.permissionmanager.databinding.ActivityAppListBinding
  * Android 系统的硬限制：第三方 App 无法代替用户去开关别的 App 的权限，
  * 唯一能做到的入口就是那个应用自己的详情页，所以这一步无法避免，
  * 但入口本身（点击麦克风卡片）已经不再直接跳系统设置了。
+ *
+ * 性能：全量应用的"申请了哪些权限"扫描由 AppPermissionCache 只做一次
+ * 并常驻内存（App 启动时已经预热过一次），这里只需要在缓存上做一次
+ * 内存过滤，再只为"匹配上的那一小部分应用"加载图标和名称，所以即使
+ * 是第一次打开也比之前直接全量扫描快很多，后续再打开别的分类基本秒开。
  */
 class AppListActivity : AppCompatActivity() {
 
@@ -77,76 +81,58 @@ class AppListActivity : AppCompatActivity() {
     }
 
     private fun loadApps(targetPermissions: List<String>) {
-        Thread {
-            val pm = packageManager
-            val result = mutableListOf<AppPermInfo>()
+        binding.progressBar.visibility = View.VISIBLE
+        binding.recyclerView.visibility = View.GONE
+        binding.tvEmpty.visibility = View.GONE
 
-            try {
-                @Suppress("DEPRECATION")
-                val packages = pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
+        // 第一步：拿到「全部应用申请了哪些权限」这份缓存（首次可能要等后台扫描，
+        // 已经预热过的话这里几乎是立刻返回）。
+        AppPermissionCache.get(this) { liteEntries ->
+            // 第二步：在缓存上过滤出申请了目标权限的应用，只为这一小部分应用
+            // 去加载图标和名称（比较慢的部分），放到后台线程做。
+            Thread {
+                val pm = packageManager
+                val result = mutableListOf<AppPermInfo>()
 
-                for (pkgInfo in packages) {
-                    val requested = pkgInfo.requestedPermissions ?: continue
-                    val flags = pkgInfo.requestedPermissionsFlags
+                for (entry in liteEntries) {
+                    val matched = entry.requestedPermissions.any { it in targetPermissions }
+                    if (!matched) continue
 
-                    var matchedIndex = -1
-                    for (i in requested.indices) {
-                        if (requested[i] in targetPermissions) {
-                            matchedIndex = i
-                            break
-                        }
-                    }
-                    if (matchedIndex == -1) continue
-
-                    // 只要该应用申请的权限里有任意一个当前处于已授权状态，就标记为"已授权"
-                    var granted = false
-                    for (i in requested.indices) {
-                        if (requested[i] in targetPermissions && flags != null) {
-                            if (flags[i] and PackageInfoCompatGranted == PackageInfoCompatGranted) {
-                                granted = true
-                                break
-                            }
-                        }
-                    }
-
-                    val appInfo = pkgInfo.applicationInfo ?: continue
-                    if (appInfo.packageName == packageName) continue // 跳过本应用自己
-
-                    val isSystemApp =
-                        (appInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM) != 0
+                    val granted = entry.grantedPermissions.any { it in targetPermissions }
 
                     try {
+                        @Suppress("DEPRECATION")
+                        val appInfo = pm.getApplicationInfo(entry.packageName, 0)
                         val label = appInfo.loadLabel(pm).toString()
                         val icon = appInfo.loadIcon(pm)
                         result.add(
                             AppPermInfo(
-                                packageName = appInfo.packageName,
+                                packageName = entry.packageName,
                                 label = label,
                                 icon = icon,
                                 granted = granted,
-                                isSystemApp = isSystemApp
+                                isSystemApp = entry.isSystemApp
                             )
                         )
                     } catch (e: Exception) {
-                        // 个别应用取图标/名称失败时跳过，不影响整体列表
+                        // 应用在扫描后被卸载，或取图标/名称失败时跳过
                     }
                 }
-            } catch (e: Exception) {
-                android.util.Log.e("AppListActivity", "枚举应用失败", e)
-            }
 
-            // 已授权的排前面，同状态下按名称排序；非系统应用优先展示在前面更符合用户关心的范围
-            result.sortWith(
-                compareBy<AppPermInfo> { it.isSystemApp }
-                    .thenByDescending { it.granted }
-                    .thenBy { it.label }
-            )
+                // 已授权的排前面，同状态下按名称排序；非系统应用优先展示在前面
+                result.sortWith(
+                    compareBy<AppPermInfo> { it.isSystemApp }
+                        .thenByDescending { it.granted }
+                        .thenBy { it.label }
+                )
 
-            runOnUiThread {
-                allApps = result
-                applyFilterAndRender()
-            }
-        }.start()
+                runOnUiThread {
+                    binding.progressBar.visibility = View.GONE
+                    allApps = result
+                    applyFilterAndRender()
+                }
+            }.start()
+        }
     }
 
     /** 把当前搜索关键字 + 筛选类型应用到 allApps 上，得到最终展示列表 */
@@ -200,7 +186,3 @@ class AppListActivity : AppCompatActivity() {
         }
     }
 }
-
-// PackageInfo.REQUESTED_PERMISSION_GRANTED 的值就是 1 shl 1 = 2
-private const val PackageInfoCompatGranted =
-    android.content.pm.PackageInfo.REQUESTED_PERMISSION_GRANTED
