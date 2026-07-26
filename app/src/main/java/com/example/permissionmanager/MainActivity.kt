@@ -111,6 +111,20 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_contacts, R.color.tint_indigo, PermissionType.CONTACTS),
             PermissionItem("日历", "查看哪些应用申请了日历权限",
                 R.drawable.ic_calendar, R.color.tint_pink, PermissionType.CALENDAR),
+            PermissionItem("读取剪贴板", "查看哪些应用申请了读取剪贴板权限（Android 系统未提供该权限的声明接口，此列表通常为空，仅作占位）",
+                R.drawable.ic_clipboard, R.color.tint_sky, PermissionType.CLIPBOARD_READ),
+            PermissionItem("写入剪贴板", "查看哪些应用申请了写入剪贴板权限（Android 系统未提供该权限的声明接口，此列表通常为空，仅作占位）",
+                R.drawable.ic_clipboard, R.color.tint_coral, PermissionType.CLIPBOARD_WRITE),
+            PermissionItem("读取应用列表", "查看哪些应用申请了查询已安装应用列表的权限",
+                R.drawable.ic_app_list, R.color.tint_violet, PermissionType.APP_LIST),
+            PermissionItem("照片与视频", "查看哪些应用申请了访问照片和视频的权限",
+                R.drawable.ic_photo_video, R.color.tint_steel, PermissionType.PHOTOS_VIDEOS),
+            PermissionItem("创建桌面快捷方式", "查看哪些应用申请了创建桌面快捷方式的权限",
+                R.drawable.ic_shortcut, R.color.tint_olive, PermissionType.CREATE_SHORTCUT),
+            PermissionItem("设备动作与方向", "查看哪些应用申请了体感/运动状态相关权限（如身体传感器、运动记录）",
+                R.drawable.ic_motion, R.color.tint_rose, PermissionType.DEVICE_MOTION),
+            PermissionItem("耗电行为管理", "查看已安装应用，进入对应应用详情页设置其后台耗电行为（各厂商 ROM 私有能力，不是可声明的权限）",
+                R.drawable.ic_power_behavior, R.color.tint_maroon, PermissionType.BATTERY_BEHAVIOR),
             PermissionItem("电池优化", "允许应用忽略电池优化在后台运行",
                 R.drawable.ic_battery, R.color.tint_lime, PermissionType.BATTERY),
             PermissionItem("安装未知应用", "允许应用安装来自未知来源的 APK 文件",
@@ -192,6 +206,48 @@ class MainActivity : AppCompatActivity() {
                 android.Manifest.permission.READ_CALENDAR,
                 android.Manifest.permission.WRITE_CALENDAR
             )
+
+            // Android 系统没有对应的可声明权限字符串（剪贴板访问是焦点窗口限制，
+            // 不是权限模型），传空数组：不会匹配到任何应用，列表始终显示"没有
+            // 找到申请该权限的应用"，比伪造一份看似能用、其实不准的数据更诚实。
+            PermissionType.CLIPBOARD_READ -> emptyArray()
+            PermissionType.CLIPBOARD_WRITE -> emptyArray()
+
+            PermissionType.APP_LIST -> arrayOf(
+                "android.permission.QUERY_ALL_PACKAGES"
+            )
+
+            PermissionType.PHOTOS_VIDEOS -> mutableListOf(
+                android.Manifest.permission.READ_EXTERNAL_STORAGE
+            ).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    add("android.permission.READ_MEDIA_IMAGES")
+                    add("android.permission.READ_MEDIA_VIDEO")
+                }
+            }.toTypedArray()
+
+            // 没有公开的 android.Manifest.permission 常量（这是启动器/桌面自己
+            // 定义的权限，早期用于接收"创建快捷方式"广播），用字符串硬编码。
+            PermissionType.CREATE_SHORTCUT -> arrayOf(
+                "com.android.launcher.permission.INSTALL_SHORTCUT"
+            )
+
+            PermissionType.DEVICE_MOTION -> mutableListOf(
+                android.Manifest.permission.BODY_SENSORS
+            ).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    add("android.permission.ACTIVITY_RECOGNITION")
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    add(android.Manifest.permission.BODY_SENSORS_BACKGROUND)
+                }
+            }.toTypedArray()
+
+            // 耗电行为管理是各厂商 ROM 自己的后台管控策略（类似"完全允许后台/
+            // 智能优化/限制后台运行"），不是一个 App 能在 AndroidManifest 里
+            // 申请的权限，所以没法按"谁申请了这个权限"过滤，直接展示全部
+            // 已安装应用，交给 AppListActivity 用 MODE_ALL_APPS 特殊处理。
+            PermissionType.BATTERY_BEHAVIOR -> arrayOf(AppListActivity.MODE_ALL_APPS)
 
             else -> null
         }
@@ -403,6 +459,15 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                     ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+
+                // 剪贴板/应用列表/照片与视频/创建桌面快捷方式/设备动作与方向/
+                // 耗电行为管理这几类在函数最前面已经被 inAppPermissionStrings
+                // 拦截并 return 掉了，这里理论上走不到，留一个兜底分支只是为了
+                // 让 when 语句保持穷尽（编译器要求覆盖所有枚举值）。
+                else ->
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.parse("package:$packageName")
                     }
             }
