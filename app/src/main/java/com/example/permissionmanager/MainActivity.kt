@@ -89,8 +89,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupRecyclerView() {
         val permissionList = listOf(
-            PermissionItem("特殊应用权限（总览）", "跳到系统的\"特殊应用权限\"汇总页，包含悬浮窗、后台弹出、使用情况访问等全部分类（不同厂商实现不同，找不到会自动退回本应用详情页）",
-                R.drawable.ic_grid, R.color.tint_black, PermissionType.SPECIAL_ACCESS_OVERVIEW),
             PermissionItem("无障碍", "允许应用使用无障碍服务，控制设备",
                 R.drawable.ic_accessibility, R.color.tint_purple, PermissionType.ACCESSIBILITY),
             PermissionItem("悬浮窗", "允许应用在其他应用上层显示，可能影响其他应用",
@@ -101,8 +99,6 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_camera, R.color.tint_orange, PermissionType.CAMERA),
             PermissionItem("位置", "查看哪些应用申请了位置权限",
                 R.drawable.ic_location, R.color.tint_green, PermissionType.LOCATION),
-            PermissionItem("通知", "允许应用向您发送通知消息",
-                R.drawable.ic_notification, R.color.tint_yellow, PermissionType.NOTIFICATION),
             PermissionItem("存储", "允许应用读取和写入存储空间中的文件",
                 R.drawable.ic_storage, R.color.tint_brown, PermissionType.STORAGE),
             PermissionItem("电话", "查看哪些应用申请了电话权限",
@@ -111,24 +107,10 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_contacts, R.color.tint_indigo, PermissionType.CONTACTS),
             PermissionItem("日历", "查看哪些应用申请了日历权限",
                 R.drawable.ic_calendar, R.color.tint_pink, PermissionType.CALENDAR),
-            PermissionItem("读取剪贴板", "查看哪些应用申请了读取剪贴板权限（Android 系统未提供该权限的声明接口，此列表通常为空，仅作占位）",
-                R.drawable.ic_clipboard, R.color.tint_sky, PermissionType.CLIPBOARD_READ),
-            PermissionItem("写入剪贴板", "查看哪些应用申请了写入剪贴板权限（Android 系统未提供该权限的声明接口，此列表通常为空，仅作占位）",
-                R.drawable.ic_clipboard, R.color.tint_coral, PermissionType.CLIPBOARD_WRITE),
-            PermissionItem("读取应用列表", "【试验性】尝试跳系统的权限分类页（能否命中取决于你这台设备，命中不了会自动退回本应用详情页）",
-                R.drawable.ic_app_list, R.color.tint_violet, PermissionType.APP_LIST),
             PermissionItem("照片与视频", "查看哪些应用申请了访问照片和视频的权限",
                 R.drawable.ic_photo_video, R.color.tint_steel, PermissionType.PHOTOS_VIDEOS),
-            PermissionItem("创建桌面快捷方式", "查看已安装应用（多数 ROM 把这个做成私有开关，标准权限读不到真实状态，所以不显示已授权/未授权标签，点进去看该应用详情页里的真实情况）",
-                R.drawable.ic_shortcut, R.color.tint_olive, PermissionType.CREATE_SHORTCUT),
-            PermissionItem("设备动作与方向", "查看哪些应用申请了体感/运动状态相关权限（如身体传感器、运动记录）",
-                R.drawable.ic_motion, R.color.tint_rose, PermissionType.DEVICE_MOTION),
-            PermissionItem("耗电行为管理", "查看已安装应用，进入对应应用详情页设置其后台耗电行为（各厂商 ROM 私有能力，不是可声明的权限）",
-                R.drawable.ic_power_behavior, R.color.tint_maroon, PermissionType.BATTERY_BEHAVIOR),
             PermissionItem("电池优化", "允许应用忽略电池优化在后台运行",
                 R.drawable.ic_battery, R.color.tint_lime, PermissionType.BATTERY),
-            PermissionItem("安装未知应用", "允许应用安装来自未知来源的 APK 文件",
-                R.drawable.ic_install, R.color.tint_deep_orange, PermissionType.UNKNOWN_SOURCES),
             PermissionItem("通知使用权", "允许应用读取、清除系统中所有其他应用的通知内容，风险较高，请谨慎授权",
                 R.drawable.ic_notification, R.color.tint_cyan, PermissionType.NOTIFICATION_LISTENER),
             PermissionItem("使用情况访问权限", "允许应用跟踪您使用其他应用的行为和频率，及运营商、语言等设备信息",
@@ -139,12 +121,8 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_settings_gear, R.color.tint_grey, PermissionType.WRITE_SETTINGS),
             PermissionItem("勿扰模式访问权限", "允许应用开启或关闭勿扰模式，以及修改相关的例外规则",
                 R.drawable.ic_dnd, R.color.tint_deep_red, PermissionType.DND_ACCESS),
-            PermissionItem("后台弹出界面", "允许后台运行的应用弹出新界面，并可能覆盖在正在使用的应用上方",
-                R.drawable.ic_popup, R.color.tint_blue_grey, PermissionType.BACKGROUND_POPUP),
             PermissionItem("媒体管理应用", "允许应用在无需用户逐一确认的情况下修改或删除媒体文件（Android 11+）",
                 R.drawable.ic_media, R.color.tint_light_green, PermissionType.MEDIA_MANAGEMENT),
-            PermissionItem("发送全屏通知", "允许应用发送需要立即处理的全屏通知，例如来电或闹钟提醒（Android 14+）",
-                R.drawable.ic_fullscreen, R.color.tint_light_blue, PermissionType.FULL_SCREEN_INTENT),
             PermissionItem("默认应用", "设置主屏幕、短信、电话、浏览器等各类操作的默认处理应用",
                 R.drawable.ic_star, R.color.tint_gold, PermissionType.DEFAULT_APPS),
             PermissionItem("设备管理器", "查看和管理拥有设备管理员权限的应用（如远程锁定、擦除数据等高级权限）",
@@ -207,25 +185,6 @@ class MainActivity : AppCompatActivity() {
                 android.Manifest.permission.WRITE_CALENDAR
             )
 
-            // Android 系统没有对应的可声明权限字符串（剪贴板访问是焦点窗口限制，
-            // 不是权限模型），传空数组：不会匹配到任何应用，列表始终显示"没有
-            // 找到申请该权限的应用"，比伪造一份看似能用、其实不准的数据更诚实。
-            PermissionType.CLIPBOARD_READ -> emptyArray()
-            PermissionType.CLIPBOARD_WRITE -> emptyArray()
-
-            // 之前用 QUERY_ALL_PACKAGES 这个标准权限来判断"已授权/未授权"，
-            // 但它是"普通权限"，只要应用在 manifest 里声明就会被系统自动
-            // 授予，跟用户在系统设置里看到的"读取应用列表"开关不是一回事——
-            // 很多 ROM（比如 ColorOS）会在这之上再加一层私有的 AppOps 开关，
-            // 可以针对单个应用单独关闭，但标准 API 读不到这层状态，会导致
-            // 我们这边显示"已授权"、系统设置里却显示"不允许"这种对不上的
-            // 情况。所以这里改成跟耗电行为管理一样的"全部应用"模式，不显示
-            // 不准确的已授权标签，只是把应用列一遍，点进去看真实状态。
-            // 改成跳系统设置试试看：不再走应用内列表，返回 null 会落到下面
-            // openPermissionSettings 里 try 块的 when 分支，用跟麦克风当年
-            // 同一套 permissionGroupIntent() 逻辑去跳系统页面。
-            // PermissionType.APP_LIST -> arrayOf(AppListActivity.MODE_ALL_APPS)
-
             PermissionType.PHOTOS_VIDEOS -> mutableListOf(
                 android.Manifest.permission.READ_EXTERNAL_STORAGE
             ).apply {
@@ -234,30 +193,6 @@ class MainActivity : AppCompatActivity() {
                     add("android.permission.READ_MEDIA_VIDEO")
                 }
             }.toTypedArray()
-
-            // 跟"读取应用列表"是同一个坑：INSTALL_SHORTCUT 也是"普通权限"，
-            // manifest 里声明了系统装应用时就自动"已授权"，跟很多 ROM 自己
-            // 加的私有"创建桌面快捷方式"开关（可以针对单个应用单独关掉）
-            // 不是同一层状态，标准权限查不到那层真实状态。改成"全部应用"
-            // 模式，不再显示不准确的已授权标签。
-            PermissionType.CREATE_SHORTCUT -> arrayOf(AppListActivity.MODE_ALL_APPS)
-
-            PermissionType.DEVICE_MOTION -> mutableListOf(
-                android.Manifest.permission.BODY_SENSORS
-            ).apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    add("android.permission.ACTIVITY_RECOGNITION")
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    add(android.Manifest.permission.BODY_SENSORS_BACKGROUND)
-                }
-            }.toTypedArray()
-
-            // 耗电行为管理是各厂商 ROM 自己的后台管控策略（类似"完全允许后台/
-            // 智能优化/限制后台运行"），不是一个 App 能在 AndroidManifest 里
-            // 申请的权限，所以没法按"谁申请了这个权限"过滤，直接展示全部
-            // 已安装应用，交给 AppListActivity 用 MODE_ALL_APPS 特殊处理。
-            PermissionType.BATTERY_BEHAVIOR -> arrayOf(AppListActivity.MODE_ALL_APPS)
 
             else -> null
         }
@@ -288,36 +223,13 @@ class MainActivity : AppCompatActivity() {
                         Uri.parse("package:$packageName")
                     )
 
-                PermissionType.NOTIFICATION ->
-                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
-                        putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                    }
-
                 PermissionType.BATTERY ->
                     // ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS 跳到全部应用的电池优化
                     // 列表页（GMS 强制要求的公开特殊权限入口，跨厂商稳定）。
                     Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 
-                PermissionType.UNKNOWN_SOURCES ->
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        Intent(
-                            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                            Uri.parse("package:$packageName")
-                        )
-                    } else {
-                        Intent(Settings.ACTION_SECURITY_SETTINGS)
-                    }
-
                 PermissionType.MICROPHONE ->
                     permissionGroupIntent("android.permission-group.MICROPHONE")
-
-                // 【试验性】"读取应用列表"没有标准 AOSP 权限组名可用（QUERY_ALL_PACKAGES
-                // 是普通权限，本来就不该有用户可见的授权页），这里用跟麦克风同一套
-                // permissionGroupIntent() 逻辑，传的是权限本身的字符串（不是标准权限组名，
-                // 是猜的），能不能命中你这台设备上 ColorOS 的私有页面得实际跳一下才知道；
-                // 命中不了会自动退回本应用详情页，不会崩溃。
-                PermissionType.APP_LIST ->
-                    permissionGroupIntent("android.permission.QUERY_ALL_PACKAGES")
 
                 PermissionType.CAMERA ->
                     permissionGroupIntent("android.permission-group.CAMERA")
@@ -374,37 +286,6 @@ class MainActivity : AppCompatActivity() {
                     // 勿扰模式访问权限列表页。
                     Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
 
-                PermissionType.BACKGROUND_POPUP ->
-                    // "后台弹出界面"是 ColorOS/OxygenOS 私有分类，没有公开的 AOSP 权限组
-                    // 名称可用，只能走 ColorOS 权限管理主页兜底（跳过去后需要手动点这个分类）。
-                    permissionGroupIntent("com.oplus.permission.opsafe.BACKGROUND_START_ACTIVITY")
-
-                PermissionType.SPECIAL_ACCESS_OVERVIEW ->
-                    // 这几个都是没有公开文档、各厂商各不相同的系统内部 Activity，靠已知
-                    // 组件名硬跳，找不到就自动退回本应用详情页。
-                    firstResolvable(
-                        Intent().apply {
-                            component = android.content.ComponentName(
-                                "com.android.permissioncontroller",
-                                "com.android.permissioncontroller.role.ui.SpecialAppAccessListActivity"
-                            )
-                        },
-                        Intent().apply {
-                            component = android.content.ComponentName(
-                                "com.android.settings",
-                                "com.oplus.settings.OplusSettingsActivity\$SpecialAccessSettingsMainActivity"
-                            )
-                        },
-                        Intent().apply {
-                            component = android.content.ComponentName(
-                                "com.oplus.securitypermission",
-                                "com.oplusos.securitypermission.privacycenter.specialaccess.ui.SpecialAccessOptimizeActivity"
-                            )
-                        }
-                    ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:$packageName")
-                    }
-
                 PermissionType.MEDIA_MANAGEMENT ->
                     // ACTION_REQUEST_MANAGE_MEDIA 只会弹授权对话框，不是列表页。
                     // "android.settings.MEDIA_MANAGEMENT_SETTINGS" 才是跳到
@@ -419,39 +300,6 @@ class MainActivity : AppCompatActivity() {
                                     "com.android.settings",
                                     "com.android.settings.Settings\$MediaManagementAppsActivity"
                                 )
-                            }
-                        ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:$packageName")
-                        }
-                    } else {
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.parse("package:$packageName")
-                        }
-                    }
-
-                PermissionType.FULL_SCREEN_INTENT ->
-                    // Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT 是公开常量
-                    // （API 34+），跳到全部应用的"发送全屏通知"列表页。
-                    // ColorOS 的 resolveActivity 对 Action 查询受 <queries> 限制，
-                    // 必须同时声明组件名备用路径才能正确跳转。
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                        firstResolvable(
-                            // ① 标准 AOSP Action（原生 / Pixel 走这条）
-                            Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT),
-                            // ② AOSP Settings 组件名（ColorOS 底层仍基于 AOSP，部分版本走这条）
-                            Intent().apply {
-                                component = android.content.ComponentName(
-                                    "com.android.settings",
-                                    "com.android.settings.Settings\$ManageAppUseFullScreenIntentActivity"
-                                )
-                            },
-                            // ③ ColorOS/OxygenOS 可能的私有入口
-                            Intent().apply {
-                                component = android.content.ComponentName(
-                                    "com.oplus.securitypermission",
-                                    "com.oplus.securitypermission.permission.ui.PermissionGroupAppsActivity"
-                                )
-                                putExtra("permissionGroup", "USE_FULL_SCREEN_INTENT")
                             }
                         ) ?: Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.parse("package:$packageName")
@@ -480,10 +328,9 @@ class MainActivity : AppCompatActivity() {
                         data = Uri.parse("package:$packageName")
                     }
 
-                // 剪贴板/应用列表/照片与视频/创建桌面快捷方式/设备动作与方向/
-                // 耗电行为管理这几类在函数最前面已经被 inAppPermissionStrings
-                // 拦截并 return 掉了，这里理论上走不到，留一个兜底分支只是为了
-                // 让 when 语句保持穷尽（编译器要求覆盖所有枚举值）。
+                // 照片与视频这类在函数最前面已经被 inAppPermissionStrings 拦截
+                // 并 return 掉了，这里理论上走不到，留一个兜底分支只是为了让
+                // when 语句保持穷尽（编译器要求覆盖所有枚举值）。
                 else ->
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.parse("package:$packageName")
