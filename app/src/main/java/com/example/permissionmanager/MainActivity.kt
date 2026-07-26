@@ -22,6 +22,10 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = "权限管理"
 
+        // 提前在后台预热"全部应用申请了哪些权限"的缓存，等用户点进麦克风/
+        // 相机等分类时大概率已经扫描完了，不用现点现扫，减少等待感。
+        AppPermissionCache.warmUp(this)
+
         setupRecyclerView()
     }
 
