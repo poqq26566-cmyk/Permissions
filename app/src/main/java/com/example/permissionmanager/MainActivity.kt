@@ -115,11 +115,11 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_clipboard, R.color.tint_sky, PermissionType.CLIPBOARD_READ),
             PermissionItem("写入剪贴板", "查看哪些应用申请了写入剪贴板权限（Android 系统未提供该权限的声明接口，此列表通常为空，仅作占位）",
                 R.drawable.ic_clipboard, R.color.tint_coral, PermissionType.CLIPBOARD_WRITE),
-            PermissionItem("读取应用列表", "查看已安装应用（多数 ROM 把这个做成私有开关，标准权限读不到真实状态，所以不显示已授权/未授权标签，点进去看该应用详情页里的真实情况）",
+            PermissionItem("读取应用列表", "【试验性】尝试跳系统的权限分类页（能否命中取决于你这台设备，命中不了会自动退回本应用详情页）",
                 R.drawable.ic_app_list, R.color.tint_violet, PermissionType.APP_LIST),
             PermissionItem("照片与视频", "查看哪些应用申请了访问照片和视频的权限",
                 R.drawable.ic_photo_video, R.color.tint_steel, PermissionType.PHOTOS_VIDEOS),
-            PermissionItem("创建桌面快捷方式", "查看哪些应用申请了创建桌面快捷方式的权限",
+            PermissionItem("创建桌面快捷方式", "查看已安装应用（多数 ROM 把这个做成私有开关，标准权限读不到真实状态，所以不显示已授权/未授权标签，点进去看该应用详情页里的真实情况）",
                 R.drawable.ic_shortcut, R.color.tint_olive, PermissionType.CREATE_SHORTCUT),
             PermissionItem("设备动作与方向", "查看哪些应用申请了体感/运动状态相关权限（如身体传感器、运动记录）",
                 R.drawable.ic_motion, R.color.tint_rose, PermissionType.DEVICE_MOTION),
@@ -221,7 +221,10 @@ class MainActivity : AppCompatActivity() {
             // 我们这边显示"已授权"、系统设置里却显示"不允许"这种对不上的
             // 情况。所以这里改成跟耗电行为管理一样的"全部应用"模式，不显示
             // 不准确的已授权标签，只是把应用列一遍，点进去看真实状态。
-            PermissionType.APP_LIST -> arrayOf(AppListActivity.MODE_ALL_APPS)
+            // 改成跳系统设置试试看：不再走应用内列表，返回 null 会落到下面
+            // openPermissionSettings 里 try 块的 when 分支，用跟麦克风当年
+            // 同一套 permissionGroupIntent() 逻辑去跳系统页面。
+            // PermissionType.APP_LIST -> arrayOf(AppListActivity.MODE_ALL_APPS)
 
             PermissionType.PHOTOS_VIDEOS -> mutableListOf(
                 android.Manifest.permission.READ_EXTERNAL_STORAGE
@@ -232,11 +235,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }.toTypedArray()
 
-            // 没有公开的 android.Manifest.permission 常量（这是启动器/桌面自己
-            // 定义的权限，早期用于接收"创建快捷方式"广播），用字符串硬编码。
-            PermissionType.CREATE_SHORTCUT -> arrayOf(
-                "com.android.launcher.permission.INSTALL_SHORTCUT"
-            )
+            // 跟"读取应用列表"是同一个坑：INSTALL_SHORTCUT 也是"普通权限"，
+            // manifest 里声明了系统装应用时就自动"已授权"，跟很多 ROM 自己
+            // 加的私有"创建桌面快捷方式"开关（可以针对单个应用单独关掉）
+            // 不是同一层状态，标准权限查不到那层真实状态。改成"全部应用"
+            // 模式，不再显示不准确的已授权标签。
+            PermissionType.CREATE_SHORTCUT -> arrayOf(AppListActivity.MODE_ALL_APPS)
 
             PermissionType.DEVICE_MOTION -> mutableListOf(
                 android.Manifest.permission.BODY_SENSORS
@@ -306,6 +310,14 @@ class MainActivity : AppCompatActivity() {
 
                 PermissionType.MICROPHONE ->
                     permissionGroupIntent("android.permission-group.MICROPHONE")
+
+                // 【试验性】"读取应用列表"没有标准 AOSP 权限组名可用（QUERY_ALL_PACKAGES
+                // 是普通权限，本来就不该有用户可见的授权页），这里用跟麦克风同一套
+                // permissionGroupIntent() 逻辑，传的是权限本身的字符串（不是标准权限组名，
+                // 是猜的），能不能命中你这台设备上 ColorOS 的私有页面得实际跳一下才知道；
+                // 命中不了会自动退回本应用详情页，不会崩溃。
+                PermissionType.APP_LIST ->
+                    permissionGroupIntent("android.permission.QUERY_ALL_PACKAGES")
 
                 PermissionType.CAMERA ->
                     permissionGroupIntent("android.permission-group.CAMERA")
