@@ -12,19 +12,30 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.permissionmanager.databinding.ActivityAppListBinding
 
 /**
- * 麦克风 / 相机 / 位置 / 电话 / 联系人 / 日历 点击后不再直接跳系统设置，
- * 而是在本 App 内展示"哪些已安装应用申请了这个权限"的列表，并支持
- * 按应用名称/包名搜索，以及按"全部 / 第三方应用 / 系统应用"筛选。
+ * 麦克风 / 相机 / 位置 / 电话 / 联系人 / 日历 / 剪贴板 / 应用列表 / 照片与视频 /
+ * 创建桌面快捷方式 / 设备动作与方向 / 耗电行为管理 点击后不再直接跳系统设置，
+ * 而是在本 App 内展示一份应用列表，并支持按应用名称/包名搜索，以及按
+ * "全部 / 第三方应用 / 系统应用"筛选。
+ *
+ * 两种模式：
+ * 1. 按权限过滤（默认）：只展示"申请了这个具体权限"的应用，并标注已授权/未授权
+ *    （麦克风、相机、位置、照片与视频等大多数分类走这条）。
+ * 2. 全部应用（MODE_ALL_APPS）：Android 没有对应的可声明权限字符串，没法用
+ *    "谁申请了这个权限"来筛选（比如"耗电行为管理"是各厂商 ROM 自己的后台
+ *    管控策略，不是一个 App 可以在 AndroidManifest 里申请的权限；"读取/写入
+ *    剪贴板"同理，系统本身就没有对应的权限声明）。这种情况下展示全部已安装
+ *    应用，不显示"已授权/未授权"标签。
  *
  * 点进列表里的某一个具体应用后，才会打开系统的"应用详情"页——这是
- * Android 系统的硬限制：第三方 App 无法代替用户去开关别的 App 的权限，
- * 唯一能做到的入口就是那个应用自己的详情页，所以这一步无法避免，
- * 但入口本身（点击麦克风卡片）已经不再直接跳系统设置了。
+ * Android 系统的硬限制：第三方 App 无法代替用户去开关别的 App 的权限或
+ * 行为策略，唯一能做到的入口就是那个应用自己的详情页，所以这一步无法
+ * 避免，但入口本身（点击麦克风等卡片）已经不再直接跳系统设置了。
  *
  * 性能：全量应用的"申请了哪些权限"扫描由 AppPermissionCache 只做一次
- * 并常驻内存（App 启动时已经预热过一次），这里只需要在缓存上做一次
- * 内存过滤，再只为"匹配上的那一小部分应用"加载图标和名称，所以即使
- * 是第一次打开也比之前直接全量扫描快很多，后续再打开别的分类基本秒开。
+ * 并常驻内存（App 启动时已经预热过一次，还落了一份磁盘缓存应对被杀
+ * 后台重开），这里只需要在缓存上做一次内存过滤，再只为"匹配上的那一
+ * 小部分应用"加载图标和名称，所以即使是第一次打开也比之前直接全量
+ * 扫描快很多，后续再打开别的分类基本秒开。
  */
 class AppListActivity : AppCompatActivity() {
 
@@ -37,9 +48,19 @@ class AppListActivity : AppCompatActivity() {
     private var currentFilter = AppFilter.ALL
     private var currentQuery = ""
 
+    private var showGrantedStatus = true
+
     companion object {
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_PERMISSIONS = "extra_permissions"
+        const val EXTRA_HINT = "extra_hint"
+
+        /**
+         * 传给 EXTRA_PERMISSIONS 的特殊哨兵值：代表这个分类在 Android 上根本没有
+         * 对应的可声明权限字符串（比如耗电行为管理、剪贴板），此时展示全部已
+         * 安装应用，而不是按权限过滤。
+         */
+        const val MODE_ALL_APPS = "__ALL_APPS__"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,15 +70,24 @@ class AppListActivity : AppCompatActivity() {
 
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "应用列表"
         val targetPermissions = intent.getStringArrayExtra(EXTRA_PERMISSIONS)?.toList() ?: emptyList()
+        val customHint = intent.getStringExtra(EXTRA_HINT)
+        val isAllAppsMode = targetPermissions.size == 1 && targetPermissions[0] == MODE_ALL_APPS
+        showGrantedStatus = !isAllAppsMode
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = title
         binding.toolbar.setNavigationOnClickListener { finish() }
 
+        binding.tvHint.text = customHint ?: if (isAllAppsMode) {
+            "以下是已安装的应用，点击可查看该应用的详情设置"
+        } else {
+            "以下应用申请了该权限，点击可查看该应用的权限详情"
+        }
+
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
 
         setupSearchAndFilter()
-        loadApps(targetPermissions)
+        loadApps(targetPermissions, isAllAppsMode)
     }
 
     private fun setupSearchAndFilter() {
@@ -80,25 +110,26 @@ class AppListActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadApps(targetPermissions: List<String>) {
+    private fun loadApps(targetPermissions: List<String>, isAllAppsMode: Boolean) {
         binding.progressBar.visibility = View.VISIBLE
         binding.recyclerView.visibility = View.GONE
         binding.tvEmpty.visibility = View.GONE
 
         // 第一步：拿到「全部应用申请了哪些权限」这份缓存（首次可能要等后台扫描，
-        // 已经预热过的话这里几乎是立刻返回）。
+        // 已经预热过的话这里几乎是立刻返回）。全部应用模式也复用这份缓存，
+        // 只是不按权限过滤，直接取里面的包名列表。
         AppPermissionCache.get(this) { liteEntries ->
-            // 第二步：在缓存上过滤出申请了目标权限的应用，只为这一小部分应用
-            // 去加载图标和名称（比较慢的部分），放到后台线程做。
+            // 第二步：过滤出需要展示的应用，只为这一部分应用去加载图标和
+            // 名称（比较慢的部分），放到后台线程做。
             Thread {
                 val pm = packageManager
                 val result = mutableListOf<AppPermInfo>()
 
                 for (entry in liteEntries) {
-                    val matched = entry.requestedPermissions.any { it in targetPermissions }
+                    val matched = isAllAppsMode || entry.requestedPermissions.any { it in targetPermissions }
                     if (!matched) continue
 
-                    val granted = entry.grantedPermissions.any { it in targetPermissions }
+                    val granted = !isAllAppsMode && entry.grantedPermissions.any { it in targetPermissions }
 
                     try {
                         @Suppress("DEPRECATION")
@@ -119,11 +150,16 @@ class AppListActivity : AppCompatActivity() {
                     }
                 }
 
-                // 已授权的排前面，同状态下按名称排序；非系统应用优先展示在前面
+                // 已授权的排前面，同状态下按名称排序；非系统应用优先展示在前面。
+                // 全部应用模式没有"已授权"这回事，直接按名称排序。
                 result.sortWith(
-                    compareBy<AppPermInfo> { it.isSystemApp }
-                        .thenByDescending { it.granted }
-                        .thenBy { it.label }
+                    if (isAllAppsMode) {
+                        compareBy<AppPermInfo> { it.isSystemApp }.thenBy { it.label }
+                    } else {
+                        compareBy<AppPermInfo> { it.isSystemApp }
+                            .thenByDescending { it.granted }
+                            .thenBy { it.label }
+                    }
                 )
 
                 runOnUiThread {
@@ -163,16 +199,17 @@ class AppListActivity : AppCompatActivity() {
         } else {
             binding.tvEmpty.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
-            binding.recyclerView.adapter = AppListAdapter(filtered) { app ->
+            binding.recyclerView.adapter = AppListAdapter(filtered, showGrantedStatus) { app ->
                 openAppDetails(app)
             }
         }
     }
 
     /**
-     * 点击列表里的某个具体应用时，跳到该应用自己的"应用详情"页去开关权限。
-     * 这是 Android 系统层面的硬限制：第三方 App 没有 API 能直接打开
-     * "别的应用的某个权限开关"，只能引导用户去这个应用的详情页里自己操作。
+     * 点击列表里的某个具体应用时，跳到该应用自己的"应用详情"页去开关权限
+     * 或调整耗电行为等设置。这是 Android 系统层面的硬限制：第三方 App
+     * 没有 API 能直接打开"别的应用的某个权限开关/行为策略"，只能引导
+     * 用户去这个应用的详情页里自己操作。
      */
     private fun openAppDetails(app: AppPermInfo) {
         try {
