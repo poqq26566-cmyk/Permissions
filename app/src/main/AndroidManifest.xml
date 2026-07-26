@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- ✅ 新增：声明需要查询的包，Android 11+ 必须加，否则 resolveActivity() 强制返回 null -->
     <queries>
@@ -13,6 +14,12 @@
 
 
     </queries>
+
+    <!-- ✅ 新增：麦克风/相机/位置/电话/联系人/日历改成本 App 内展示"哪些应用申请了该权限"的
+         列表，需要枚举全部已安装应用，Android 11+ 必须声明该权限才能拿到完整包列表
+         （否则 getInstalledPackages 只能看到 <queries> 里列出的少数包）。 -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
     <application
         android:allowBackup="true"
@@ -30,6 +37,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ✅ 新增：麦克风/相机/位置/电话/联系人/日历点击后展示的"应用列表"页 -->
+        <activity
+            android:name=".AppListActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
 
     </application>
 
