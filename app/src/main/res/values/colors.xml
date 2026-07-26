@@ -26,4 +26,12 @@
     <color name="tint_light_blue">#0288D1</color>
     <color name="tint_gold">#F9A825</color>
     <color name="tint_navy">#1A237E</color>
+
+    <color name="tint_sky">#0EA5E9</color>
+    <color name="tint_coral">#FF7043</color>
+    <color name="tint_violet">#7C4DFF</color>
+    <color name="tint_steel">#607D8B</color>
+    <color name="tint_olive">#827717</color>
+    <color name="tint_rose">#D81B60</color>
+    <color name="tint_maroon">#8D2828</color>
 </resources>
