@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -12,7 +14,8 @@ import com.example.permissionmanager.databinding.ActivityAppListBinding
 
 /**
  * 麦克风 / 相机 / 位置 / 电话 / 联系人 / 日历 点击后不再直接跳系统设置，
- * 而是在本 App 内展示"哪些已安装应用申请了这个权限"的列表。
+ * 而是在本 App 内展示"哪些已安装应用申请了这个权限"的列表，并支持
+ * 按应用名称/包名搜索，以及按"全部 / 第三方应用 / 系统应用"筛选。
  *
  * 点进列表里的某一个具体应用后，才会打开系统的"应用详情"页——这是
  * Android 系统的硬限制：第三方 App 无法代替用户去开关别的 App 的权限，
@@ -22,6 +25,13 @@ import com.example.permissionmanager.databinding.ActivityAppListBinding
 class AppListActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAppListBinding
+
+    /** 加载一次后缓存的全量数据，搜索/筛选都只在内存里过滤，不用重新扫描应用 */
+    private var allApps: List<AppPermInfo> = emptyList()
+
+    private enum class AppFilter { ALL, THIRD_PARTY, SYSTEM }
+    private var currentFilter = AppFilter.ALL
+    private var currentQuery = ""
 
     companion object {
         const val EXTRA_TITLE = "extra_title"
@@ -42,7 +52,28 @@ class AppListActivity : AppCompatActivity() {
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
 
+        setupSearchAndFilter()
         loadApps(targetPermissions)
+    }
+
+    private fun setupSearchAndFilter() {
+        binding.etSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                currentQuery = s?.toString()?.trim().orEmpty()
+                applyFilterAndRender()
+            }
+        })
+
+        binding.chipGroupFilter.setOnCheckedStateChangeListener { _, checkedIds ->
+            currentFilter = when (checkedIds.firstOrNull()) {
+                binding.chipThirdParty.id -> AppFilter.THIRD_PARTY
+                binding.chipSystem.id -> AppFilter.SYSTEM
+                else -> AppFilter.ALL
+            }
+            applyFilterAndRender()
+        }
     }
 
     private fun loadApps(targetPermissions: List<String>) {
@@ -112,18 +143,44 @@ class AppListActivity : AppCompatActivity() {
             )
 
             runOnUiThread {
-                if (result.isEmpty()) {
-                    binding.tvEmpty.visibility = View.VISIBLE
-                    binding.recyclerView.visibility = View.GONE
-                } else {
-                    binding.tvEmpty.visibility = View.GONE
-                    binding.recyclerView.visibility = View.VISIBLE
-                    binding.recyclerView.adapter = AppListAdapter(result) { app ->
-                        openAppDetails(app)
-                    }
-                }
+                allApps = result
+                applyFilterAndRender()
             }
         }.start()
+    }
+
+    /** 把当前搜索关键字 + 筛选类型应用到 allApps 上，得到最终展示列表 */
+    private fun applyFilterAndRender() {
+        var filtered = allApps
+
+        filtered = when (currentFilter) {
+            AppFilter.ALL -> filtered
+            AppFilter.THIRD_PARTY -> filtered.filter { !it.isSystemApp }
+            AppFilter.SYSTEM -> filtered.filter { it.isSystemApp }
+        }
+
+        if (currentQuery.isNotEmpty()) {
+            val q = currentQuery.lowercase()
+            filtered = filtered.filter {
+                it.label.lowercase().contains(q) || it.packageName.lowercase().contains(q)
+            }
+        }
+
+        if (filtered.isEmpty()) {
+            binding.tvEmpty.visibility = View.VISIBLE
+            binding.recyclerView.visibility = View.GONE
+            binding.tvEmpty.text = if (allApps.isEmpty()) {
+                "没有找到申请该权限的应用"
+            } else {
+                "没有匹配的应用，换个关键词试试"
+            }
+        } else {
+            binding.tvEmpty.visibility = View.GONE
+            binding.recyclerView.visibility = View.VISIBLE
+            binding.recyclerView.adapter = AppListAdapter(filtered) { app ->
+                openAppDetails(app)
+            }
+        }
     }
 
     /**
