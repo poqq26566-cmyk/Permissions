@@ -91,21 +91,21 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_accessibility, R.color.tint_purple, PermissionType.ACCESSIBILITY),
             PermissionItem("悬浮窗", "允许应用在其他应用上层显示，可能影响其他应用",
                 R.drawable.ic_overlay, R.color.tint_blue, PermissionType.OVERLAY),
-            PermissionItem("麦克风", "允许应用使用麦克风录制音频",
+            PermissionItem("麦克风", "查看哪些应用申请了麦克风权限",
                 R.drawable.ic_microphone, R.color.tint_red, PermissionType.MICROPHONE),
-            PermissionItem("相机", "允许应用使用相机拍照和录像",
+            PermissionItem("相机", "查看哪些应用申请了相机权限",
                 R.drawable.ic_camera, R.color.tint_orange, PermissionType.CAMERA),
-            PermissionItem("位置", "允许应用访问设备的精确位置信息",
+            PermissionItem("位置", "查看哪些应用申请了位置权限",
                 R.drawable.ic_location, R.color.tint_green, PermissionType.LOCATION),
             PermissionItem("通知", "允许应用向您发送通知消息",
                 R.drawable.ic_notification, R.color.tint_yellow, PermissionType.NOTIFICATION),
             PermissionItem("存储", "允许应用读取和写入存储空间中的文件",
                 R.drawable.ic_storage, R.color.tint_brown, PermissionType.STORAGE),
-            PermissionItem("电话", "允许应用拨打电话和管理通话记录",
+            PermissionItem("电话", "查看哪些应用申请了电话权限",
                 R.drawable.ic_phone, R.color.tint_teal, PermissionType.PHONE),
-            PermissionItem("联系人", "允许应用读取和修改您的联系人信息",
+            PermissionItem("联系人", "查看哪些应用申请了联系人权限",
                 R.drawable.ic_contacts, R.color.tint_indigo, PermissionType.CONTACTS),
-            PermissionItem("日历", "允许应用读取和修改您的日历事件",
+            PermissionItem("日历", "查看哪些应用申请了日历权限",
                 R.drawable.ic_calendar, R.color.tint_pink, PermissionType.CALENDAR),
             PermissionItem("电池优化", "允许应用忽略电池优化在后台运行",
                 R.drawable.ic_battery, R.color.tint_lime, PermissionType.BATTERY),
@@ -140,7 +140,73 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 麦克风 / 相机 / 位置 / 电话 / 联系人 / 日历 这几类权限对应的具体
+     * Android 权限字符串。点这几个分类时不再直接跳系统设置，而是先在本
+     * App 内展示"哪些已安装应用申请了这个权限"的列表（见 AppListActivity）。
+     */
+    private fun inAppPermissionStrings(type: PermissionType): Array<String>? {
+        return when (type) {
+            PermissionType.MICROPHONE -> arrayOf(
+                android.Manifest.permission.RECORD_AUDIO
+            )
+
+            PermissionType.CAMERA -> arrayOf(
+                android.Manifest.permission.CAMERA
+            )
+
+            PermissionType.LOCATION -> mutableListOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    add(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                }
+            }.toTypedArray()
+
+            PermissionType.PHONE -> mutableListOf(
+                android.Manifest.permission.READ_PHONE_STATE,
+                android.Manifest.permission.CALL_PHONE,
+                android.Manifest.permission.READ_CALL_LOG,
+                android.Manifest.permission.WRITE_CALL_LOG,
+                android.Manifest.permission.ADD_VOICEMAIL,
+                android.Manifest.permission.USE_SIP
+            ).apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    add(android.Manifest.permission.ANSWER_PHONE_CALLS)
+                    add(android.Manifest.permission.READ_PHONE_NUMBERS)
+                }
+            }.toTypedArray()
+
+            PermissionType.CONTACTS -> arrayOf(
+                android.Manifest.permission.READ_CONTACTS,
+                android.Manifest.permission.WRITE_CONTACTS,
+                android.Manifest.permission.GET_ACCOUNTS
+            )
+
+            PermissionType.CALENDAR -> arrayOf(
+                android.Manifest.permission.READ_CALENDAR,
+                android.Manifest.permission.WRITE_CALENDAR
+            )
+
+            else -> null
+        }
+    }
+
     private fun openPermissionSettings(item: PermissionItem) {
+        // 麦克风/相机/位置/电话/联系人/日历：不跳系统设置，改为跳到本 App 内的
+        // "应用列表"页，展示哪些应用申请了这个权限。
+        val inAppPermissions = inAppPermissionStrings(item.type)
+        if (inAppPermissions != null) {
+            startActivity(
+                Intent(this, AppListActivity::class.java).apply {
+                    putExtra(AppListActivity.EXTRA_TITLE, item.name)
+                    putExtra(AppListActivity.EXTRA_PERMISSIONS, inAppPermissions)
+                }
+            )
+            return
+        }
+
         try {
             val intent = when (item.type) {
                 PermissionType.ACCESSIBILITY ->
