@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
                 R.drawable.ic_clipboard, R.color.tint_sky, PermissionType.CLIPBOARD_READ),
             PermissionItem("写入剪贴板", "查看哪些应用申请了写入剪贴板权限（Android 系统未提供该权限的声明接口，此列表通常为空，仅作占位）",
                 R.drawable.ic_clipboard, R.color.tint_coral, PermissionType.CLIPBOARD_WRITE),
-            PermissionItem("读取应用列表", "查看哪些应用申请了查询已安装应用列表的权限",
+            PermissionItem("读取应用列表", "查看已安装应用（多数 ROM 把这个做成私有开关，标准权限读不到真实状态，所以不显示已授权/未授权标签，点进去看该应用详情页里的真实情况）",
                 R.drawable.ic_app_list, R.color.tint_violet, PermissionType.APP_LIST),
             PermissionItem("照片与视频", "查看哪些应用申请了访问照片和视频的权限",
                 R.drawable.ic_photo_video, R.color.tint_steel, PermissionType.PHOTOS_VIDEOS),
@@ -213,9 +213,15 @@ class MainActivity : AppCompatActivity() {
             PermissionType.CLIPBOARD_READ -> emptyArray()
             PermissionType.CLIPBOARD_WRITE -> emptyArray()
 
-            PermissionType.APP_LIST -> arrayOf(
-                "android.permission.QUERY_ALL_PACKAGES"
-            )
+            // 之前用 QUERY_ALL_PACKAGES 这个标准权限来判断"已授权/未授权"，
+            // 但它是"普通权限"，只要应用在 manifest 里声明就会被系统自动
+            // 授予，跟用户在系统设置里看到的"读取应用列表"开关不是一回事——
+            // 很多 ROM（比如 ColorOS）会在这之上再加一层私有的 AppOps 开关，
+            // 可以针对单个应用单独关闭，但标准 API 读不到这层状态，会导致
+            // 我们这边显示"已授权"、系统设置里却显示"不允许"这种对不上的
+            // 情况。所以这里改成跟耗电行为管理一样的"全部应用"模式，不显示
+            // 不准确的已授权标签，只是把应用列一遍，点进去看真实状态。
+            PermissionType.APP_LIST -> arrayOf(AppListActivity.MODE_ALL_APPS)
 
             PermissionType.PHOTOS_VIDEOS -> mutableListOf(
                 android.Manifest.permission.READ_EXTERNAL_STORAGE
